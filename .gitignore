@@ -5,14 +5,12 @@ __pycache__/
 
 # Custom
 Results
-Temp_Param*.yaml
-test*.py
 z_test*.py
 bin
 mod_load/data/MNIST_data.hdf5
 mod_load/DataComplexity/*.pdf
-mod_load/DataComplexity/*.png
 # *.png
+*.gif
 
 
 # C extensions
