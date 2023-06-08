@@ -10,7 +10,7 @@ bin
 mod_load/data/MNIST_data.hdf5
 mod_load/DataComplexity/*.pdf
 # *.png
-*.gif
+# *.gif
 
 
 # C extensions
