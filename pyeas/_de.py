@@ -1,5 +1,4 @@
 import numpy as np
-import math
 
 from typing import Any
 from typing import cast, Union
@@ -8,42 +7,62 @@ import time
 
 
 class DE:
-    """CMA-ES stochastic optimizer class with ask-and-tell interface.
+    """Differential Evolution (DE) stochastic optimizer class with ask-and-tell interface.
 
-    based off the style of: https://github.com/CyberAgentAILab/cmaes/blob/main/cmaes/_cma.py
+    > based off the style of: https://github.com/CyberAgentAILab/cmaes/blob/main/cmaes/_cma.py
 
-    Build into a package: https://www.youtube.com/watch?v=5KEObONUkik 
+    (Build into a package: https://www.youtube.com/watch?v=5KEObONUkik)
 
     Args:
 
-        mean:
-            Initial mean vector of multi-variate gaussian distributions.
-
-        sigma:
-            Initial standard deviation of covariance matrix.
+        mut:
+            Mutation Factor (i.e., 'F') for selected mutation scheme.
+        
+        crossp:
+            Crossover Rate (i.e., 'CR') for binary crossover.
 
         bounds:
-            Lower and upper domain boundaries for each parameter (optional).
+            Lower and upper domain boundaries for either
+                i) each parameter,
+                ii) each grouping of paramaters (see 'groupings' argument)
 
         n_max_resampling:
             A maximum number of resampling parameters (default: 100).
             If all sampled parameters are infeasible, the last sampled one
             will be clipped with lower and upper bounds.
 
+        population_size:
+            A population size (optional). If None, defualts to 2*number_dimensions.
+            
         seed:
             A seed number (optional).
 
-        population_size:
-            A population size (optional).
+        pop_dim_multiple:
+            A population size modifier (optional).
+            Toggles the effect of population_size argument to scale with the number of dimensions:
+                0 --> pop = population_size
+                1 --> pop = population_size*number_dimensions
 
-        cov:
-            A covariance matrix (optional).
+        groupings:
+            An array which informs the object of the shape of a population member (optional).
+                None        --> each member is a 1d array
+                                e.g., possible member: [1.5, 0.5, 0.6, -0.9, 1.1]
+                Otherwise   --> each member contains several diffenet shaped arrays 
+                                e.g., groupings=[1,3,2] 
+                                      possible member: [ [1.5], [0.5, 0.6, -0.9], [1.1]]
+
+        mut_scheme:
+            A string which assignes the mutation scheme used (optional).
+            Schemes available: best1, best2, rand1, rand2, ttb1 (target-to-best)
+
+        constraint_handle:
+            A string which assignes the method of handeling boundary violations during mutation (optional).
+            Schemes available: clip/projection, resample, scaled, reflection 
+
+
     """
 
-    _toggle = 0
-    _pop_norm = None
-    _pop_fits = None
-    _best_idx = None
+    
 
     def __init__(
                 self,
@@ -51,7 +70,6 @@ class DE:
                 crossp: float,
                 bounds: np.ndarray,
                 population_size: Optional[Union[int, float]] = None,
-                n_max_resampling: int = 100,
                 seed: Optional[int] = None,
                 pop_dim_multiple: int = 0,
                 groupings: Optional[Union[np.ndarray, list]] = None,
@@ -93,6 +111,11 @@ class DE:
         self._crossp = crossp
         self._mut_scheme = mut_scheme
         self._constraint_handle = constraint_handle
+
+        self._toggle = 0
+        self._pop_norm = None
+        self._pop_fits = None
+        self._best_idx = None
 
         self.history = {}
         self.history['best_fits'] = []
@@ -352,8 +375,6 @@ class DE:
         if num_violations == 0:
             return mutant, 0
 
-        #
-
         # # Implement the selected violation handeling sheme
         if force_select == 0:
             handle = self._constraint_handle
@@ -362,16 +383,20 @@ class DE:
 
         #
 
-        # # Perform projection (i.e., clipping)
-        if handle == 'clip' or handle == 'projection':
+        # No handling
+        if handle is None:
+            return mutant, 0
+        
+        # Perform projection (i.e., clipping)
+        elif handle == 'clip' or handle == 'projection':
             mutant = np.clip(mutant, 0, 1)
             return mutant, 0
 
-        # # Return the resample flag
+        # Return the resample flag
         elif handle == 'resample':
             return mutant, 1
 
-        # # Perform Scaled Mutant operation
+        # Perform Scaled Mutant operation
         elif handle == 'scaled':
             alphas = [1]
             for m in mutant:
@@ -385,7 +410,7 @@ class DE:
 
             return mutant, 0
 
-        # # Perform Scaled Mutant operation
+        # Perform Scaled Mutant operation
         elif handle == 'reflection':
             for i, m in enumerate(mutant):
                 if m > 1:
