@@ -44,13 +44,14 @@ class OAIES:
                 sigma: float,
                 bounds: np.ndarray,
                 optimiser: str = 'adam',
-                momentum: Optional[float] = None,
                 population_size: Optional[Union[int, float]] = None,
                 seed: Optional[int] = None,
                 pop_dim_multiple: int = 0,
                 groupings: Optional[Union[np.ndarray, list]] = None,
-                mut_scheme: str = 'best1',
-                constraint_handle: str = 'clip',
+                constraint_handle: Optional[str] = None,
+                momentum: Optional[float] = None,
+                beta1=0.9,
+                beta2=0.99,
                 ):
         
 
@@ -78,30 +79,32 @@ class OAIES:
         assert self._popsize > 0, "popsize must be non-zero positive value."
 
         # # Check other hyper-params
-        assert alpha > 0, "The value of mutation factor (i.e., F) must be larger than 0"
-        assert isinstance(mut_scheme, str), "The mutation scheme (e.g., best1, rand1) must be a string"
-        assert isinstance(constraint_handle, str), "The mutation boundary handle constrain (e.g., clip, reflection) must be a string"
-
-        assert isinstance(optimiser, str), "The selected optimiser should be a string (e.g., vanilla, momentum, adam)"
-        self._optimiser = optimiser
-        
-        if self._optimiser == 'momentum':
-            self._m = momentum
-            assert self._m > 0 and self._m < 1, "Momentum must be [0,1]"
-        elif self._optimiser == 'adam':
-            self._m = momentum
-            assert self._m > 0 and self._m < 1, "Momentum must be [0,1]"
+        assert alpha > 0, "The value of alpha (i.e., learning rate) must be larger than 0"
+        assert sigma > 0, "The value of sigma (i.e., the pseudo-population noise) must be larger than 0"
 
         self._alpha = alpha
         self._sigma = sigma
 
+        assert isinstance(optimiser, str), "The selected optimiser should be a string (e.g., vanilla, momentum, adam)"
+        self._optimiser = optimiser
         self._prev_ga = None
-        self._m = 0  # for adam GD
-        self._v = 0  # for adam GD
 
+        if self._optimiser == 'momentum':
+            assert momentum > 0 and momentum < 1, "Momentum must be [0,1]"
+            self._m = momentum
+        elif self._optimiser == 'adam':
+            self._m = 0
+            self._v = 0
+            assert beta1 > 0, "The value of adam's beta1 must be larger than 0"
+            assert beta2 > 0, "The value of adam's beta2 must be larger than 0"
+            self._beta1 = beta1
+            self._beta2 = beta2
+
+    
         self._toggle = 0
         self._parent_norm = None
         self._parent_fit = None
+        self._constraint_handle = constraint_handle
 
         self.history = {}
         self.history['best_fits'] = []
@@ -131,23 +134,41 @@ class OAIES:
         return self._g
 
     @property
-    def parent_pop(self) -> np.ndarray:
+    def parent(self) -> np.ndarray:
         """Return the denormalised (and grouped) parent poulation"""
-        return self._denorm(self._pop_norm)
+        return self._denorm([self._parent_norm])[0]
 
-    @parent_pop.setter
-    def parent_pop(self, new_parent_pop: np.ndarray):
+    @parent.setter
+    def parent(self, new_parent_pop: np.ndarray):
         """Set the parent poulation"""
-        self._pop_norm = self._norm(new_parent_pop)
+        self._parent_norm = self._norm([new_parent_pop])[0]
         return
 
     @property
-    def best_member(self) -> int:
-        """Fetch the current best member and it's fitness"""
-        fit = self._pop_fits[self._best_idx]
-        member = self._denorm([self._pop_norm[self._best_idx]])[0]
+    def best_trial(self) -> np.ndarray:
+        """Fetch the current psudo-population best member and it's fitness"""
+        fit = np.min(self._trial_fits)
+        member = self._denorm([self._trials[np.argmin(self._trial_fits)]])[0]
         return (fit, member)
     
+    @property
+    def best(self) -> np.ndarray:
+        """Return the denormalised (and grouped) parent poulation"""
+        return (self.history['best_fits'][-1], self.history['best_solutions'][-1])
+
+    @best.setter
+    def best(self, parent_fit: float):
+        """Set the parent poulation"""
+        assert self._parent_fit is not None, "Can't set the best fitness until you have evaluated generation zero"
+        assert self._toggle == 0, "Can only set the best result once you have updated the pop via a tell."
+        assert parent_fit >= 0, "The parent fitness score must be greater than zero."
+
+        self.history['best_fits'].append(parent_fit)
+        self.history['best_solutions'].append(self.parent)
+
+        # self._trials = trials
+        # self._trial_fits = fitnessess
+        return
     #
 
     # #########################################
@@ -160,10 +181,10 @@ class OAIES:
 
 
         # # Generate population
-        if self._pop_norm is None:
-            self._pop_norm = self._sample_initi_pop() # generate initial parent population to evaluate
+        if self._parent_norm is None:
+            self._parent_norm = self._sample_initi_pop() # generate initial parent population to evaluate
             self._toggle = 1
-            return self._denorm(self._pop_norm)
+            return self._denorm([self._parent_norm])[0]
         
         else:
             trial_pop = self._sample_trial_pop(loop)  # generate trial population to evaluate
@@ -297,24 +318,40 @@ class OAIES:
     # #########################################
     # # Use the fed back fitnesses to perform a generational update
 
-    def tell(self, fitnessess: list, trials: Optional[np.ndarray] = None) -> None:
-        """Tell the object the fitness values of the whole trial pseudo-population which has been valuated"""
+    def tell(self, fitnessess: list, trials: Optional[np.ndarray] = None, t=1) -> None:
+        """Tell the object the fitness values of the whole trial pseudo-population which has been valuated
+            Args:
+
+                fitnessess:
+                    List of fitnesses for the corresponding trial members (i.e., pseudo-population)
+
+                trials:
+                    The trial members (i.e., pseudo-population) considered.
+
+                t:
+                    The iteration (optional). If not iterated, a static decay schedule is used.
+        """
 
         # # if condition returns False, AssertionError is raised:
         assert len(fitnessess) == self._popsize, "Must tell with popsize-length solutions."
         assert self._toggle == 1, "Must first ask (i.e., fetch) & evaluate new trials."
+        assert t >= 0, "The time/iteration must be greater than zero."
 
+        self._trials = trials
+        self._trial_fits = fitnessess
 
         # # Retrieve fitness information and make gradient decent update
-        if self._pop_fits is None:
-            self._parent_norm = trials[np.argmin(fitnessess)]
+        if self._parent_fit is None:
+            # # Use a uniformly generated population to select a starting location
+            self._parent_norm = self._norm([trials[np.argmin(fitnessess)]])[0]
             self._parent_fit = np.min(fitnessess) 
             
         else:
-            # evaluate trial population to evaluate
             # # Colapse the pseudo-population to update the parent/target
             assert trials is not None, "To perfom GD, please tell me the fitnesses and trials/pseudo-population used"
             trials_norm = self._norm(trials)
+            #print("self._parent_norm", self._parent_norm)
+            theta = np.copy(self._parent_norm)  # parent member to perfrom GD on
 
             R = -np.array(fitnessess)
             if np.std(R) <= 0:
@@ -329,37 +366,43 @@ class OAIES:
             # # Normal Grad Decent
             if self._optimiser == 'vanilla':
                 ga = g*self._alpha
-                parent_raw = parent_raw + ga
+                theta = theta + ga
 
             # # Momentum
             elif self._optimiser == 'momentum':
-                if self.prev_ga is None:
-                    ga = g*self.prm['algo']['alpha']
-                    parent_raw = parent_raw + ga
+                # https://machinelearningmastery.com/gradient-descent-with-momentum-from-scratch/
+                if self._prev_ga is None:
+                    ga = g*self._alpha
+                    theta = theta + ga
                 else:
-                    # https://machinelearningmastery.com/gradient-descent-with-momentum-from-scratch/
-                    ga = g*self.prm['algo']['alpha'] + self.prm['algo']['momentum']*self.prev_ga
-                    parent_raw = parent_raw + ga
+                    ga = g*self._alpha + self._m*self._prev_ga
+                    theta = theta + ga
+                self._prev_ga = ga
 
             # # Adam GD
-            elif self.prm['algo']['adam'] != 0:
+            elif self._optimiser == 'adam':
                 # https://machinelearningmastery.com/adam-optimization-from-scratch/
                 # https://towardsdatascience.com/how-to-implement-an-adam-optimizer-from-scratch-76e7b217f1cc
-                self.m = self.prm['algo']['adam_beta1']*self.m + (1-self.prm['algo']['adam_beta1'])*g
-                self.v = self.prm['algo']['adam_beta2']*self.v + (1-self.prm['algo']['adam_beta2'])*g**2
+                self._m = self._beta1*self._m + (1-self._beta1)*g
+                self._v = self._beta2*self._v + (1-self._beta2)*g**2
 
-                m_hat = self.m/(1-self.prm['algo']['adam_beta1']**t)
-                v_hat = self.v/(1-self.prm['algo']['adam_beta2']**t)
+                m_hat = self._m/(1-self._beta1**t)
+                v_hat = self._v/(1-self._beta2**t)
 
-                ga = self.prm['algo']['alpha']*m_hat/(1e-8+v_hat**0.5)
-                parent_raw = parent_raw + ga
+                ga = self._alpha*m_hat/(1e-8+v_hat**0.5)
+                theta = theta + ga
 
             else:
-                raise ValueError("Invalid grad decent method")
+                raise ValueError("Invalid gradient decent optimiser method")
 
-
-        self.history['best_fits'].append(self.best_member[0])
-        self.history['best_solutions'].append(self.best_member[1])
+            #print("theta:", theta)
+            # print("ga:", np.around(ga.astype(np.float), decimals=5))
+            theta = np.around(theta.astype(np.float), decimals=5)
+            theta = self._mutant_boundary(theta)
+            self._parent_norm = theta
+            #print("theta:", theta)
+            #exit()
+        
 
         self._toggle = 0
         return

@@ -63,7 +63,7 @@ plt.yscale("log")
 print(optimizer.history['best_solutions'][-1])
 
 fig, ax = plt.subplots()
-ax.scatter(x, y, marker=".", color='r', alpha=0.7, label='Fitted to data')
+ax.scatter(x, y, marker=".", color='r', alpha=0.7, label='Target data')
 plt.plot(x, np.cos(x), '--', label='ideal cos(x)', color='k', alpha=0.5)
 data = fmodel(x, optimizer.history['best_solutions'][-1])
 ax.plot(x, data, label='DE Solution')
