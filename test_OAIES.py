@@ -54,9 +54,10 @@ for generation in range(num_gens):
     # Tell evaluation values.
     optimizer.tell(solutions, trial_pop, t=generation)
 
+    # Calc the new parent fitness, and Tell Again!
     parent_fit = rmse(x, y, optimizer.parent)
-    # print("parent fit =", parent_fit)
-    optimizer.best = parent_fit
+    optimizer.tellAgain(parent_fit)
+
     print("Gen:", generation, optimizer.best[0], " best trial fit:", optimizer.best_trial[0])
 
 fig = plt.figure()

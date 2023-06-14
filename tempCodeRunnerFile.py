@@ -1,2 +1,2 @@
-
-                optimiser = 'adam',  # 'ttb1', rand1
+plt.show()
+exit()

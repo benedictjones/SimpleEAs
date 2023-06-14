@@ -102,6 +102,7 @@ class OAIES:
 
     
         self._toggle = 0
+        self._toggle_parent = 0
         self._parent_norm = None
         self._parent_fit = None
         self._constraint_handle = constraint_handle
@@ -156,19 +157,6 @@ class OAIES:
         """Return the denormalised (and grouped) parent poulation"""
         return (self.history['best_fits'][-1], self.history['best_solutions'][-1])
 
-    @best.setter
-    def best(self, parent_fit: float):
-        """Set the parent poulation"""
-        assert self._parent_fit is not None, "Can't set the best fitness until you have evaluated generation zero"
-        assert self._toggle == 0, "Can only set the best result once you have updated the pop via a tell."
-        assert parent_fit >= 0, "The parent fitness score must be greater than zero."
-
-        self.history['best_fits'].append(parent_fit)
-        self.history['best_solutions'].append(self.parent)
-
-        # self._trials = trials
-        # self._trial_fits = fitnessess
-        return
     #
 
     # #########################################
@@ -178,7 +166,7 @@ class OAIES:
         """Sample a whole trial population which needs to be evaluated"""
 
         assert self._toggle == 0, "Must first evaluate current trials and tell me their fitnesses."
-
+        assert self._toggle_parent == 0, "Must first evaluate and set the best/parent member fitness"
 
         # # Generate population
         if self._parent_norm is None:
@@ -318,7 +306,7 @@ class OAIES:
     # #########################################
     # # Use the fed back fitnesses to perform a generational update
 
-    def tell(self, fitnessess: list, trials: Optional[np.ndarray] = None, t=1) -> None:
+    def tell(self, fitnessess: list, trials: Optional[np.ndarray] = None, t: int=1) -> None:
         """Tell the object the fitness values of the whole trial pseudo-population which has been valuated
             Args:
 
@@ -336,6 +324,7 @@ class OAIES:
         assert len(fitnessess) == self._popsize, "Must tell with popsize-length solutions."
         assert self._toggle == 1, "Must first ask (i.e., fetch) & evaluate new trials."
         assert t >= 0, "The time/iteration must be greater than zero."
+        assert self._toggle_parent == 0, "Must first evaluate and set the best/parent member fitness"
 
         self._trials = trials
         self._trial_fits = fitnessess
@@ -405,8 +394,23 @@ class OAIES:
         
 
         self._toggle = 0
+        self._toggle_parent = 1
         return
     
+    def tellAgain(self, parent_fit: float):
+        """Set the parent member's fitness"""
+
+        assert self._parent_fit is not None, "Can't set the best fitness until you have evaluated generation zero"
+        assert self._toggle == 0, "Can only set the best result once you have updated the pop via a tell."
+        assert self._toggle_parent == 1, "Must first perform a generational update, then inform about the new parent fit (e.g., optimizer.best = parent_fit)"
+        # assert parent_fit >= 0, "The parent fitness score must be greater than zero."
+
+        self._parent_fit = parent_fit
+        self.history['best_fits'].append(parent_fit)
+        self.history['best_solutions'].append(self.parent)
+
+        self._toggle_parent = 0
+        return
     #
 
     # #########################################
