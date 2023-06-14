@@ -5,9 +5,6 @@ These follow an ask/tell work flow where one:
 - the fitness socores are then fed back to the object with tell() to enable a population update
 
 ## Algorithms
-Algorithms to me implemented:
-- Differential Evolution (DE)
-- OpenAI ES (OAIES)
 
 
 ### DE
@@ -41,8 +38,10 @@ for generation in range(num_gens):
 
 An Example of DE/best/1/bin solving some simple problems:
 
-
-![](example_DE_2.gif) ![](example_DE_6hemp.gif)
+<p float="left">
+  <img src="example_DE_2.gif" width="49%" />
+  <img src="example_DE_6hemp.gif" width="49%" />
+</p>
 
 
 An example of DE/rand/2/bin solving a 5th order polynomial to fit noisy cos(x) data.
@@ -93,7 +92,24 @@ for generation in range(num_gens):
 
 An Example of OAIES solving some simple problems:
 
-![](example_OAIES_2.gif) ![](example_OAIES_6hemp.gif)
+<p float="left">
+  <img src="example_OAIES_2.gif" width="49%" />
+  <img src="example_OAIES_6hemp.gif" width="49%" />
+</p>
+
+
+## Additional Functionality
+
+### Groupings
+
+You might not always want a population member to be a 1d array with a corresponding boundary array. e.g., 
+- member: [-0.5, -1.9, 1.6, -2, 8], 
+- boundaries: [ [-1,1], [-2,2], [-2,2], [-10,10], [-10,10] ]
+
+Instead, we might want to group a member into sub arrays corresponding to a list of boundaries. We can do this using the 'groupings' argument. e.g., 
+- member: [-0.5, -1.9, 1.6, -2, 8], 
+- boundaries: [ [-1,1], [-2,2], [-10,10] ]
+- grouping: [1, 2, 2]
 
 
 ## References 
