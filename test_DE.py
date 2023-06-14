@@ -73,6 +73,8 @@ ax.legend()
 
 fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4))
 
+fig_ani.suptitle('DE fitting a 5th order polynomial to noisy cos() data')
+
 ax.set_ylim([-10, 10])
 ax.scatter(x, y, marker=".", color='r')
 ax.set_xlabel("x")
@@ -83,7 +85,7 @@ ax2.plot(optimizer.history['best_fits'])
 ax2.set_xlabel("Generation")
 ax2.set_ylabel("rmse")
 it_line, = ax2.plot([0, 0],  [np.min(optimizer.history['best_fits']), np.max(optimizer.history['best_fits'])], markersize=5, color='k', alpha=0.5) #
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 lines = []
 
@@ -107,7 +109,8 @@ def ani(i):
 
     it_line.set_xdata([i, i])
 
-FPS = num_gens/300
+length = 10 # seconds
+FPS = num_gens/length  # 20
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens), interval=20)
 
 fig_path = "example_DE.gif"

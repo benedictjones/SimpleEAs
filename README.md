@@ -39,9 +39,10 @@ for generation in range(num_gens):
 
 ```
 
-An Example of DE/best/1/bin solving a simple gradient decent problem ($f = 0.5*x1**2 + (5/2)*x2^2 - x1*x2 - 2*(x1 + x2)$):
+An Example of DE/best/1/bin solving some simple problems:
 
-![](example_DE_2.gif)
+
+![](example_DE_2.gif) ![](example_DE_6hemp.gif)
 
 
 An example of DE/rand/2/bin solving a 5th order polynomial to fit noisy cos(x) data.
@@ -90,9 +91,9 @@ for generation in range(num_gens):
 ```
 
 
-An Example of OAIES solving a simple gradient decent problem ($f = 0.5*x1**2 + (5/2)*x2^2 - x1*x2 - 2*(x1 + x2)$):
+An Example of OAIES solving some simple problems:
 
-![](example_OAIES_2.gif)
+![](example_OAIES_2.gif) ![](example_OAIES_6hemp.gif)
 
 
 ## References 

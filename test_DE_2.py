@@ -89,6 +89,8 @@ plt.legend()
 
 fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4))
 
+fig_ani.suptitle('OpenAI-ES on $f = 0.5*x1^2 + (5/2)*x2^2 - x1*x2 - 2*(x1 + x2)$')
+
 x1 = np.linspace(-5, 5, 400)
 x2 = np.linspace(-5, 5, 400)
 X1, X2 = np.meshgrid(x1, x2)
@@ -101,8 +103,8 @@ it_converg, = ax.plot([], [], '-*', markersize=5, color='w', alpha=0.3) #
 trs, = ax.plot(trial_pops[0][:,0], trial_pops[0][:,1], marker=".", color='k', linestyle="None") 
 ax.set_xlabel("x1")
 ax.set_ylabel("x2")
-ax.set_xlim([2, 4.5])
-ax.set_ylim([-0.25, 1.75])
+ax.set_xlim([1.75, 5])
+ax.set_ylim([-0.25, 2])
 
 
 # ax2.set_yscale('log')
@@ -110,7 +112,7 @@ ax2.plot(optimizer.history['best_fits'])
 ax2.set_xlabel("Generation")
 ax2.set_ylabel("Function")
 it_line, = ax2.plot([0, 0],  [np.min(optimizer.history['best_fits']), np.max(optimizer.history['best_fits'])], markersize=5, color='k', alpha=0.5) #
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 
 def ani(i):
