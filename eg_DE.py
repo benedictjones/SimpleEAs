@@ -31,7 +31,7 @@ optimizer = DE(mut=0.6,
                mut_scheme = 'ttb1',  # 'ttb1', rand1
                seed=1)
 
-num_gens = 400
+num_gens = 300
 for generation in range(num_gens):
     # print("Gen:", generation)
     solutions = []
@@ -109,12 +109,12 @@ def ani(i):
 
     it_line.set_xdata([i, i])
 
-length = 10 # seconds
+length = 20 # seconds
 FPS = num_gens/length  # 20
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens), interval=20)
 
 fig_path = "examples/DE.gif"
-the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
+the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=50)
 
 
 plt.show()
