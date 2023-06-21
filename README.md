@@ -4,6 +4,9 @@ These follow an ask/tell work flow where one:
 - new trial members/sample are requested using ask(), these need to me manually evaluated
 - the fitness socores are then fed back to the object with tell() to enable a population update
 
+Future updates will include tools:
+- Page Trend test for convergence statistical analysis
+
 ## Algorithms
 
 
@@ -107,7 +110,7 @@ You might not always want a population member to be a 1d array with a correspond
 - boundaries: [ [-1,1], [-2,2], [-2,2], [-10,10], [-10,10] ]
 
 Instead, we might want to group a member into sub arrays corresponding to a list of boundaries. We can do this using the 'groupings' argument. e.g., 
-- member: [-0.5, -1.9, 1.6, -2, 8], 
+- member: [[-0.5], [-1.9, 1.6], [-2, 8]], 
 - boundaries: [ [-1,1], [-2,2], [-10,10] ]
 - grouping: [1, 2, 2]
 
