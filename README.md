@@ -44,7 +44,7 @@ An Example of DE/best/1/bin solving some simple problems:
 </p>
 
 
-An example of DE/rand/2/bin solving a 5th order polynomial to fit noisy cos(x) data.
+An example of DE/ttb/1/bin solving a 5th order polynomial to fit noisy cos(x) data.
 
 ![](https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE.gif)
 

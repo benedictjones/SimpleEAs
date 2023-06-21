@@ -27,11 +27,11 @@ optimizer = DE(mut=0.6,
                bounds=np.array([[-5,5],[-5,5],[-5,5],[-5,5],[-5,5],[-5,5]]),
                #bounds=np.array([[-5,5],[-5,5]]),
                #groupings=[2,4],
-               population_size=20,
-               mut_scheme = 'rand2',  # 'ttb1', rand1
+               population_size=200,
+               mut_scheme = 'ttb1',  # 'ttb1', rand1
                seed=1)
 
-num_gens = 1100
+num_gens = 400
 for generation in range(num_gens):
     # print("Gen:", generation)
     solutions = []
