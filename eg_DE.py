@@ -113,7 +113,7 @@ length = 10 # seconds
 FPS = num_gens/length  # 20
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens), interval=20)
 
-fig_path = "example_DE.gif"
+fig_path = "examples/DE.gif"
 the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
 
 

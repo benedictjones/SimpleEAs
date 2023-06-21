@@ -8,19 +8,18 @@ import matplotlib.animation as animation
 
 
 def f(x1, x2):
-    return 4*x1**2-2.1*x1**4+(x1**6)/3+x1*x2-4*x2**2+4*x2**4
-
+    return 0.5*x1**2 + (5/2)*x2**2 - x1*x2 - 2*(x1 + x2)
 
 
 optimizer = OAIES(
                 alpha=0.01,
                 sigma=0.002,
-                bounds=np.array([[-3,3],[-2,2]]),
+                bounds=np.array([[-10,10],[-10,10]]),
                 #bounds=np.array([[-5,5],[-5,5]]),
                 #groupings=[2,4],
                 population_size=20,
                 optimiser = 'adam',
-                seed=3)
+                seed=1)
 
 trial_pops = []
 num_gens = 40
@@ -55,8 +54,8 @@ plt.plot(optimizer.history['best_fits'])
 print(optimizer.history['best_solutions'][-1])
 
 
-x1 = np.linspace(-3, 3, 400)
-x2 = np.linspace(-2, 2, 400)
+x1 = np.linspace(1.5, 4, 150)
+x2 = np.linspace(0, 1.5, 150)
 X1, X2 = np.meshgrid(x1, x2)
 Z = f(X1, X2)
 
@@ -82,20 +81,22 @@ plt.legend()
 
 fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4))
 
-fig_ani.suptitle('OpenAI-ES on six-hemp camel function')
+fig_ani.suptitle('OpenAI-ES on $f = 0.5*x1^2 + (5/2)*x2^2 - x1*x2 - 2*(x1 + x2)$')
 
-x1 = np.linspace(-3, 3, 400)
-x2 = np.linspace(-2, 2, 400)
+x1 = np.linspace(-5, 5, 400)
+x2 = np.linspace(-5, 5, 400)
 X1, X2 = np.meshgrid(x1, x2)
 Z = f(X1, X2)
 
-ax.imshow(Z, extent = [-3,3,-2,2], origin = 'lower', cmap = 'jet', alpha = 1)
+ax.imshow(Z, extent = [-5,5,-5,5], origin = 'lower', cmap = 'jet', alpha = 1)
 # ax.scatter(r1[0], r2[0], marker=".", color='r')
 it_point, = ax.plot([], [], '*', color='w', alpha=1, linestyle="None") #
 it_converg, = ax.plot([], [], '-*', markersize=5, color='w', alpha=0.3) #
 trs, = ax.plot(trial_pops[0][:,0], trial_pops[0][:,1], marker=".", color='k', linestyle="None") 
 ax.set_xlabel("x1")
 ax.set_ylabel("x2")
+ax.set_xlim([1.75, 5])
+ax.set_ylim([-0.25, 2])
 
 
 # ax2.set_yscale('log')
@@ -139,9 +140,8 @@ def ani(i):
 FPS = 20 # num_gens/300
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens*2), interval=20)
 
-fig_path = "example_OAIES_6hemp.gif"
+fig_path = "examples/OAIES_2.gif"
 the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
 
 exit()
 plt.show()
-exit()

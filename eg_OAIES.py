@@ -117,7 +117,7 @@ def ani(i):
 FPS = num_gens/300
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens), interval=20)
 
-fig_path = "example_OAIES.gif"
+fig_path = "examples/OAIES.gif"
 the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
 
 

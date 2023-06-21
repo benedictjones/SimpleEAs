@@ -39,14 +39,14 @@ for generation in range(num_gens):
 An Example of DE/best/1/bin solving some simple problems:
 
 <p float="left">
-  <img src="example_DE_2.gif" width="49%" />
-  <img src="example_DE_6hemp.gif" width="49%" />
+  <img src="examples/DE_2.gif" width="49%" />
+  <img src="examples/DE_6hemp.gif" width="49%" />
 </p>
 
 
 An example of DE/rand/2/bin solving a 5th order polynomial to fit noisy cos(x) data.
 
-![](example_DE.gif)
+![](examples/DE.gif)
 
 
 ### OpenAI ES
@@ -93,8 +93,8 @@ for generation in range(num_gens):
 An Example of OAIES solving some simple problems:
 
 <p float="left">
-  <img src="example_OAIES_2.gif" width="49%" />
-  <img src="example_OAIES_6hemp.gif" width="49%" />
+  <img src="examples/OAIES_2.gif" width="49%" />
+  <img src="examples/OAIES_6hemp.gif" width="49%" />
 </p>
 
 

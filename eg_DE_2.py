@@ -10,20 +10,6 @@ import matplotlib.animation as animation
 def f(x1, x2):
     return 0.5*x1**2 + (5/2)*x2**2 - x1*x2 - 2*(x1 + x2)
 
-def gradient(x1, x2):
-    return np.array([-2 + x1 - x2, -2 - x1 + 5*x2])
-
-def norm(matrice_1x2):
-    n_line = matrice_1x2.shape[0]
-    N = 0
-    for i in range(n_line):
-        N += matrice_1x2[i]**2
-    return math.sqrt(N)
-
-
-
-
-
 
 optimizer = DE(mut=0.6,
                crossp=0.6,
@@ -148,9 +134,8 @@ def ani(i):
 FPS = 20 # num_gens/300
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens*2), interval=20)
 
-fig_path = "example_DE_2.gif"
+fig_path = "examples/DE_2.gif"
 the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
 
 exit()
 plt.show()
-exit()

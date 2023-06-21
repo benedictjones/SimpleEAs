@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from pyeas._de import DE
+from pyeas._oaies import OAIES
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 # import matplotlib
@@ -11,13 +11,16 @@ def f(x1, x2):
     return 4*x1**2-2.1*x1**4+(x1**6)/3+x1*x2-4*x2**2+4*x2**4
 
 
-optimizer = DE(mut=0.6,
-               crossp=0.6,
-               bounds=np.array([[-3,3],[-2,2]]),
-               #groupings=[2,4],
-               population_size=20,
-               mut_scheme = 'best1',  # 'ttb1', rand1
-               seed=3)
+
+optimizer = OAIES(
+                alpha=0.01,
+                sigma=0.002,
+                bounds=np.array([[-3,3],[-2,2]]),
+                #bounds=np.array([[-5,5],[-5,5]]),
+                #groupings=[2,4],
+                population_size=20,
+                optimiser = 'adam',
+                seed=3)
 
 trial_pops = []
 num_gens = 40
@@ -36,9 +39,13 @@ for generation in range(num_gens):
         #print(f"#{generation} {value} (x1={trial[0]}, x2 = {trial[1]}))")
 
     # Tell evaluation values.
-    optimizer.tell(solutions, trial_pop)
+    optimizer.tell(solutions, trial_pop, t=generation)
 
-    print("Gen:", generation, optimizer.best_member[0])
+    # Calc the new parent fitness, and Tell Again!
+    parent_fit = f(optimizer.parent[0], optimizer.parent[1])
+    optimizer.tellAgain(parent_fit)
+
+    print("Gen:", generation, optimizer.best[0], " best trial fit:", optimizer.best_trial[0])
 
 fig = plt.figure()
 plt.plot(optimizer.history['best_fits'])
@@ -48,8 +55,8 @@ plt.plot(optimizer.history['best_fits'])
 print(optimizer.history['best_solutions'][-1])
 
 
-x1 = np.linspace(-3, 3, 150)
-x2 = np.linspace(-2, 2, 150)
+x1 = np.linspace(-3, 3, 400)
+x2 = np.linspace(-2, 2, 400)
 X1, X2 = np.meshgrid(x1, x2)
 Z = f(X1, X2)
 
@@ -73,9 +80,9 @@ plt.legend()
 
 
 
-fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4), constrained_layout=True)
+fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4))
 
-fig_ani.suptitle('DE on six-hemp camel function')
+fig_ani.suptitle('OpenAI-ES on six-hemp camel function')
 
 x1 = np.linspace(-3, 3, 400)
 x2 = np.linspace(-2, 2, 400)
@@ -89,8 +96,6 @@ it_converg, = ax.plot([], [], '-*', markersize=5, color='w', alpha=0.3) #
 trs, = ax.plot(trial_pops[0][:,0], trial_pops[0][:,1], marker=".", color='k', linestyle="None") 
 ax.set_xlabel("x1")
 ax.set_ylabel("x2")
-# ax.set_xlim([2, 4.5])
-# ax.set_ylim([-0.25, 1.75])
 
 
 # ax2.set_yscale('log')
@@ -134,9 +139,8 @@ def ani(i):
 FPS = 20 # num_gens/300
 the_animation = animation.FuncAnimation(fig_ani, ani, frames=np.arange(num_gens*2), interval=20)
 
-fig_path = "example_DE_6hemp.gif"
+fig_path = "examples/OAIES_6hemp.gif"
 the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=100)
 
 exit()
 plt.show()
-exit()
