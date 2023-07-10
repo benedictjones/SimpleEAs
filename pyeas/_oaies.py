@@ -106,7 +106,6 @@ class OAIES:
         self._parent_norm = None
         self._parent_fit = None
         self._constraint_handle = constraint_handle
-
         self._number_evals = 0  # number of training evaluations
 
         self.history = {}
