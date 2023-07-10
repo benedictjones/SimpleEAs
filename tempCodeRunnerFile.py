@@ -1,2 +1,2 @@
-plt.show()
-exit()
+
+funs, bds, labs = zip(*itrbl)
