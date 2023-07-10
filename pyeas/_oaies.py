@@ -106,10 +106,12 @@ class OAIES:
         self._parent_norm = None
         self._parent_fit = None
         self._constraint_handle = constraint_handle
+        self._number_evals = 0  # number of training evaluations
 
         self.history = {}
         self.history['best_fits'] = []
         self.history['best_solutions'] = []
+        self.history['num_evals'] = []
 
         return
 
@@ -334,7 +336,6 @@ class OAIES:
             # # Use a uniformly generated population to select a starting location
             self._parent_norm = self._norm([trials[np.argmin(fitnessess)]])[0]
             self._parent_fit = np.min(fitnessess) 
-            
         else:
             # # Colapse the pseudo-population to update the parent/target
             assert trials is not None, "To perfom GD, please tell me the fitnesses and trials/pseudo-population used"
@@ -392,6 +393,7 @@ class OAIES:
             #print("theta:", theta)
             #exit()
         
+        self._number_evals += len(trials)
 
         self._toggle = 0
         self._toggle_parent = 1
@@ -406,8 +408,13 @@ class OAIES:
         # assert parent_fit >= 0, "The parent fitness score must be greater than zero."
 
         self._parent_fit = parent_fit
+        
+        # # Don't increase number of evaluations, as this doesn't progress evo
+        # self._number_evals += 1
+
         self.history['best_fits'].append(parent_fit)
         self.history['best_solutions'].append(self.parent)
+        self.history['num_evals'].append(self._number_evals)
 
         self._toggle_parent = 0
         return

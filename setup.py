@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf8") as f:
 if __name__ == "__main__":
     setup(
         name="pyeas",
-        version="0.1.0",
+        version="0.2.0",
         author="benedictjones",
         description="Implements Evolutionary Algorithms and tools",
         long_description=long_description,
@@ -17,6 +17,6 @@ if __name__ == "__main__":
         license="BSD License (BSD-3-Clause)",
         packages=find_packages(),
         keywords=['python', 'Differential Evolution', 'DE', 'OpenAI Evolutionary Strategy', "OpenAI ES"],
-        install_requires=["numpy"],
+        install_requires=["numpy", "scipy", "matplotlib"],
         extras_requires=["twine"],
         )

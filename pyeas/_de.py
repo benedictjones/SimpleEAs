@@ -116,10 +116,12 @@ class DE:
         self._pop_norm = None
         self._pop_fits = None
         self._best_idx = None
+        self._number_evals = 0  # number of training evaluations
 
         self.history = {}
         self.history['best_fits'] = []
         self.history['best_solutions'] = []
+        self.history['num_evals'] = []
 
         return
 
@@ -157,7 +159,7 @@ class DE:
 
     @property
     def best_member(self) -> int:
-        """Fetch the current best member and it's fitness"""
+        """Fetch the current best member and it's training fitness"""
         fit = self._pop_fits[self._best_idx]
         member = self._denorm([self._pop_norm[self._best_idx]])[0]
         return (fit, member)
@@ -503,8 +505,11 @@ class DE:
             self._pop_norm = new_pop
             self._pop_fits = new_pop_fits
 
+        self._number_evals += len(trials)
+
         self.history['best_fits'].append(self.best_member[0])
         self.history['best_solutions'].append(self.best_member[1])
+        self.history['num_evals'].append(self._number_evals)
 
         self._toggle = 0
         return
