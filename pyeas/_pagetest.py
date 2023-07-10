@@ -49,7 +49,6 @@ class PageTest:
 
         self.results_so_far = []
 
-        self.initi_cut = 1
 
         return
 
@@ -78,22 +77,25 @@ class PageTest:
 
         for f, arr in enumerate(y):
             
+            max = np.max(abs(arr))
+
             if self.problem_labels is None:
-                ax.plot(x[f],y[f], label='f%d' % (f), alpha=1)
+                ax.plot(x[f], y[f]/max, label='f%d' % (f), alpha=1)
             else:
-                ax.plot(x[f],y[f], label='f%d (%s)' % (f, self.problem_labels[f]), alpha=1)
+                ax.plot(x[f], y[f]/max, label='f%d (%s)' % (f, self.problem_labels[f]), alpha=1)
 
 
-            ax.plot(cy[f],'x', color='k', alpha=0.75, markersize=5)
+            ax.plot(cy[f]/max,'x', color='k', alpha=0.75, markersize=5)
 
             for xx in range(self.num_cuts):
-                ax.plot([xx,xx],[ymin,ymax], '--', color='k', alpha=0.15)  # plot line
+                # ax.plot([xx,xx],[ymin,ymax], '--', color='k', alpha=0.15)  # plot line
+                ax.plot([xx,xx],[-1,1], '--', color='k', alpha=0.15)  # plot line
 
         ax.set_xlabel('cuts')
         if self.invert == 0:
-            ax.set_ylabel('fitness{A-B}')
+            ax.set_ylabel('normalised fitness{A-B}')
         elif self.invert == 1:
-            ax.set_ylabel('fitness{B-A}')
+            ax.set_ylabel('normalised fitness{B-A}')
 
 
         handles, labels = ax.get_legend_handles_labels()
@@ -146,7 +148,7 @@ class PageTest:
         # # Cut down to the newer number of points
         cuts = []
         real_c_locs = []
-        c_locs = np.linspace(self.initi_cut, max_x, num=self.num_cuts)
+        c_locs = np.linspace(0, max_x, num=self.num_cuts)
         for c in c_locs:
             idx, val = self.find_nearest(new_x, c)
             if self.invert == 0:
@@ -190,7 +192,7 @@ class PageTest:
         # # Cut down to the newer number of points
         cuts = []
         real_c_locs = []
-        c_locs = np.linspace(self.initi_cut, max_x, num=self.num_cuts)
+        c_locs = np.linspace(0, max_x, num=self.num_cuts)
         for c in c_locs:
             idx, val = self.find_nearest(x,c)
 

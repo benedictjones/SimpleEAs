@@ -4,17 +4,19 @@ import matplotlib.animation as animation
 
 from pyeas._de import DE
 from pyeas._oaies import OAIES
-from pyeas._pagetest import PageTest
+from pyeas._plotter import animate
 
 
 
-def f(x1, x2):
-    """Domian: [[-10,10],[-10,10]]"""
-    return (x1 + 3) + (10 * (x2 + 2)) ** 2
+def f_mat(x1, x2):
+    """  Matyas function: https://www.sfu.ca/~ssurjano/matya.html
+            Domian: [[-10,10],[-10,10]]"""
+    return 0.26*(x1**2 + x2**2) - 0.48*x1*x2
 
-def f2(x1, x2):
-    """Domian: [[-10,10],[-10,10]]"""
-    return 0.5*x1**2 + (5/2)*x2**2 - x1*x2 - 2*(x1 + x2)
+def f_bohach(x1, x2):
+    """Bohachevsky Function: https://www.indusmic.com/post/bohachevsky-function
+    Domian: [[-100,100],[-100,100]]"""
+    return x1**2 +2*(x2**2)-0.3*np.cos(3*np.pi*x1)-0.4*np.cos(4*np.pi*x2)+0.7
 
 def f_3hc(x1, x2):
     """" Three hump camel functions:
@@ -78,18 +80,20 @@ This then allows for a page trend test.
 """
 
 itrbl = [
-        # [f, [[-10,10],[-10,10]], ''],
-        # [f2, [[-10,10],[-10,10]], ''],
-        # [f_3hc, [[-5,5],[-5,5]], '3hc'],
+        [f_mat, [[-10,10],[-10,10]], 'matyas'],
+        [f_bohach, [[-100,100],[-100,100]], 'bohachevsky'],
+        [f_3hc, [[-5,5],[-5,5]], '3hc'],
         [f_6hc, [[-3,3],[-2,2]], '6hc'],
-        # [f_kean, [[-10,10],[-10,10]], 'kean'],
-        # [f_ackley, [[-5,5],[-5,5]], 'ackley'],
+        [f_kean, [[-10,10],[-10,10]], 'kean'],
+        [f_ackley, [[-5,5],[-5,5]], 'ackley'],
         [f_rose, [[-5,10],[-5,10]], 'rosen'],
         [f_beale, [[-4.5,4.5],[-4.5,4.5]],'beale']
         ]
 
+funs, bds, labs = zip(*itrbl)
+
+
 num_gens = 40
-num_loops = 5
 
 for deets in itrbl:
 
@@ -97,63 +101,49 @@ for deets in itrbl:
     print("\n>>", lab, bound)
 
     
-
-
     # # Perform DE 
-    print("DE:")
-    de_rep_fits = []
-    fig = plt.figure()
-    for rep in range(num_loops):
+    optimizer = DE(mut=0.6,
+                crossp=0.6,
+                bounds=np.array(bound),
+                population_size=10,
+                mut_scheme = 'best1',  # 'ttb1', rand1
+                seed=2)
 
-        optimizer = DE(mut=0.6,
-                    crossp=0.6,
-                    bounds=np.array(bound),
-                    population_size=20,
-                    mut_scheme = 'best1',  # 'ttb1', rand1
-                    seed=rep)
-
-        for generation in range(num_gens):
-            solutions = []
-            trial_pop = optimizer.ask(loop=generation)
-            for j, trial in enumerate(trial_pop):
-                value = fun(trial[0], trial[1])
-                solutions.append((value))
-            optimizer.tell(solutions, trial_pop)
-
-        de_rep_fits.append(optimizer.history['best_fits'])
-        plt.plot(optimizer.history['best_fits'], '--', color='k', alpha=0.2)
-        print(optimizer.history['best_solutions'][-1])
-    plt.plot(np.mean(de_rep_fits, axis=0))
+    trial_pops = []
+    for generation in range(num_gens):
+        solutions = []
+        trial_pop = optimizer.ask(loop=generation)
+        trial_pops.append(trial_pop)
+        for j, trial in enumerate(trial_pop):
+            value = fun(trial[0], trial[1])
+            solutions.append((value))
+        optimizer.tell(solutions, trial_pop)
+    animate(optimizer, trial_pops, bound, fun, lab,
+            save="examples/DE_%s" % (lab), algo="DE")
     
 
-    # # Perform OpenAi-ES
-    oaies_rep_fits = []
-    print("OAIES:")
-    fig = plt.figure()
-    for rep in range(num_loops):
-        optimizer = OAIES(
-                    alpha=0.01,
-                    sigma=0.001,
-                    bounds=np.array(bound),
-                    population_size=40,
-                    optimiser = 'adam',
-                    seed=rep)
+    # # Perform OpenAi-ES 
+    optimizer = OAIES(
+                alpha=0.01,
+                sigma=0.002,
+                bounds=np.array(bound),
+                population_size=10,
+                optimiser = 'adam',
+                seed=2)
+    
+    trial_pops = []
+    for generation in range(num_gens):
+        solutions = []
+        trial_pop = optimizer.ask(loop=generation)
+        trial_pops.append(trial_pop)
+        for j, trial in enumerate(trial_pop):
+            value = fun(trial[0], trial[1])
+            solutions.append((value))
+        optimizer.tell(solutions, trial_pop, t=generation)
+        parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
+        optimizer.tellAgain(parent_fit)
 
-        for generation in range(num_gens):
-            solutions = []
-            trial_pop = optimizer.ask(loop=generation)
-            for j, trial in enumerate(trial_pop):
-                value = fun(trial[0], trial[1])
-                solutions.append((value))
-            optimizer.tell(solutions, trial_pop, t=generation)
-            parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
-            optimizer.tellAgain(parent_fit)
-
-        oaies_rep_fits.append(optimizer.history['best_fits'])
-        plt.plot(optimizer.history['best_fits'], '--', color='k', alpha=0.2)
-        print(optimizer.history['best_solutions'][-1])
-    plt.plot(np.mean(oaies_rep_fits, axis=0))
+    animate(optimizer, trial_pops, bound, fun, lab,
+            save="examples/OAIES_%s" % (lab), algo='OAIES')
 
 
-    plt.show()
-    exit()

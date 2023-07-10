@@ -42,8 +42,12 @@ for generation in range(num_gens):
 An Example of DE/best/1/bin solving some simple problems:
 
 <p float="left">
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_2.gif" width="49%" />
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_6hemp.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_bohachevsky.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_6hc.gif" width="49%" />
+</p>
+<p float="left">
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_beale.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/DE_kean.gif" width="49%" />
 </p>
 
 
@@ -94,10 +98,13 @@ for generation in range(num_gens):
 
 
 An Example of OAIES solving some simple problems:
-
 <p float="left">
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_2.gif" width="49%" />
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_6hemp.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_bohachevsky.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_6hc.gif" width="49%" />
+</p>
+<p float="left">
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_beale.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/OAIES_kean.gif" width="49%" />
 </p>
 
 
@@ -115,6 +122,13 @@ Instead, we might want to group a member into sub arrays corresponding to a list
 - grouping: [1, 2, 2]
 
 
+### Number of Evaluations
+
+The number of evaluations performed (recorded when the object is told solutions) is tracked.
+This means that systems can be compared for there computational consumption, rather then just the number of generations/iterations performed.
+
+This is very important to enable realistic comparisons in case mini-batching is being used [4].
+
 ## References 
 
 [1] R. Storn and K. Price, “Differential Evolution – A Simple and Efficient Heuristic for global Optimization over Continuous Spaces,” Journal of Global Optimization, vol. 11, no. 4, pp. 341–359, Dec. 1997. [Online]. Available: https://doi.org/10.1023/A:1008202821328
@@ -122,3 +136,5 @@ Instead, we might want to group a member into sub arrays corresponding to a list
 [2] T. Salimans, J. Ho, X. Chen, S. Sidor, and I. Sutskever, “Evolution Strategies as a Scalable Alternative to Reinforcement Learning,” Sep. 2017. [Online]. Available: http://arxiv.org/abs/1703.03864
 
 [3] D. P. Kingma and J. Ba, “Adam: A Method for Stochastic Optimization,” arXiv, Jan. 2017. [Online]. Available: http://arxiv.org/abs/1412.6980
+
+[4] Benedict. A. H. Jones, N. Al Moubayed, D. A. Zeze, and C. Groves, ‘Enhanced methods for Evolution in-Materio Processors’, in 2021 International Conference on Rebooting Computing (ICRC), Nov. 2021, pp. 109–118. http://doi.org/10.1109/ICRC53822.2021.00026.

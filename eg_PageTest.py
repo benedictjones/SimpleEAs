@@ -8,13 +8,15 @@ from pyeas._pagetest import PageTest
 
 
 
-def f(x1, x2):
-    """Domian: [[-10,10],[-10,10]]"""
-    return (x1 + 3) + (10 * (x2 + 2)) ** 2
+def f_mat(x1, x2):
+    """  Matyas function: https://www.sfu.ca/~ssurjano/matya.html
+            Domian: [[-10,10],[-10,10]]"""
+    return 0.26*(x1**2 + x2**2) - 0.48*x1*x2
 
-def f2(x1, x2):
-    """Domian: [[-10,10],[-10,10]]"""
-    return 0.5*x1**2 + (5/2)*x2**2 - x1*x2 - 2*(x1 + x2)
+def f_bohach(x1, x2):
+    """Bohachevsky Function: https://www.indusmic.com/post/bohachevsky-function
+    Domian: [[-100,100],[-100,100]]"""
+    return x1**2 +2*(x2**2)-0.3*np.cos(3*np.pi*x1)-0.4*np.cos(4*np.pi*x2)+0.7
 
 def f_3hc(x1, x2):
     """" Three hump camel functions:
@@ -78,8 +80,8 @@ This then allows for a page trend test.
 """
 
 itrbl = [
-        [f, [[-10,10],[-10,10]], 'custom1'],
-        [f2, [[-10,10],[-10,10]], 'custom2'],
+        [f_mat, [[-10,10],[-10,10]], 'matyas'],
+        [f_bohach, [[-100,100],[-100,100]], 'bohachevsky'],
         [f_3hc, [[-5,5],[-5,5]], '3hc'],
         [f_6hc, [[-3,3],[-2,2]], '6hc'],
         [f_kean, [[-10,10],[-10,10]], 'kean'],
@@ -90,13 +92,13 @@ itrbl = [
 
 funs, bds, labs = zip(*itrbl)
 
-PT = PageTest(num_cuts=1+int(len(itrbl)/2),
+PT = PageTest(num_cuts=5,
               problem_labels=labs,
               invert=0)
 
 
-num_gens = 30
-num_loops = 3
+num_gens = 40
+num_loops = 20
 
 for deets in itrbl:
 

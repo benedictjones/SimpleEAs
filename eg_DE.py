@@ -55,13 +55,17 @@ for generation in range(num_gens):
 
     print("Gen:", generation, optimizer.best_member[0])
 
+
+# # Plot convergence
 fig = plt.figure()
 plt.plot(optimizer.history['best_fits'])
 plt.yscale("log")
 
-
 print(optimizer.history['best_solutions'][-1])
 
+
+
+# # Plot final best solution
 fig, ax = plt.subplots()
 ax.scatter(x, y, marker=".", color='r', alpha=0.7, label='Target data')
 plt.plot(x, np.cos(x), '--', label='ideal cos(x)', color='k', alpha=0.5)
@@ -71,6 +75,8 @@ ax.legend()
 
 
 
+
+# # Plot Ani
 fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4))
 
 fig_ani.suptitle('DE fitting a 5th order polynomial to noisy cos() data')
