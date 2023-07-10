@@ -1,7 +1,16 @@
-ohach, [[-100,100],[-100,100]], 'bohachevsky'],
-        # [f_3hc, [[-5,5],[-5,5]], '3hc'],
-        # [f_6hc, [[-3,3],[-2,2]], '6hc'],
-        # [f_kean, [[-10,10],[-10,10]], 'kean'],
-        # [f_ackley, [[-5,5],[-5,5]], 'ackley'],
-        # [f_rose, [[-5,10],[-5,10]], 'rosen'],
-        # [f_beale, [[-4.5,4.5],[-4.5,4.5]],'beale']
+optimizer = CMA(mean=np.mean(bound, axis=1),
+    #                 sigma=0.002,
+    #                 bounds=np.array(bound),
+    #                 seed=2)
+
+    # trial_pops = []
+    # for generation in range(num_gens):
+    #     solutions = []
+    #     for _ in range(optimizer.population_size):
+    #         x = optimizer.ask()
+
+    #     exit()
+    #     value = fun(x[0], x[1])
+    #     solutions.append((x, value))
+    #     optimizer.tell(solutions,)
+    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMA_%s" % (lab), algo="CMA")

@@ -4,8 +4,10 @@ import matplotlib.animation as animation
 
 from pyeas._de import DE
 from pyeas._oaies import OAIES
+from pyeas._cmaes import CMAES
 from pyeas._plotter import animate
 
+from cmaes import CMA
 
 
 def f_mat(x1, x2):
@@ -118,8 +120,7 @@ for deets in itrbl:
             value = fun(trial[0], trial[1])
             solutions.append((value))
         optimizer.tell(solutions, trial_pop)
-    animate(optimizer, trial_pops, bound, fun, lab,
-            save="examples/DE_%s" % (lab), algo="DE")
+    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/DE_%s" % (lab), algo="DE")
     
 
     # # Perform OpenAi-ES 
@@ -143,7 +144,50 @@ for deets in itrbl:
         parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
         optimizer.tellAgain(parent_fit)
 
-    animate(optimizer, trial_pops, bound, fun, lab,
-            save="examples/OAIES_%s" % (lab), algo='OAIES')
+    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/OAIES_%s" % (lab), algo='OAIES')
 
 
+    # # Perform CMAES
+    # optimizer = CMA(mean=np.mean(bound, axis=1),
+    #                 sigma=0.002,
+    #                 bounds=np.array(bound),
+    #                 seed=2)
+
+    # trial_pops = []
+    # for generation in range(num_gens):
+    #     solutions = []
+    #     for _ in range(optimizer.population_size):
+    #         x = optimizer.ask()
+
+    #     exit()
+    #     value = fun(x[0], x[1])
+    #     solutions.append((x, value))
+    #     optimizer.tell(solutions,)
+    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMA_%s" % (lab), algo="CMA")
+
+
+
+    # # Perform CMAES
+    optimizer = CMAES(mean=np.mean(bound, axis=1),
+                    sigma=0.002,
+                    bounds=np.array(bound),
+                    seed=2)
+
+    trial_pops = []
+    for generation in range(num_gens):
+        
+        solutions = []
+        
+        trial_pop = optimizer.ask()
+        trial_pops.append(trial_pop)
+        for j, trial in enumerate(trial_pop):
+            value = fun(trial[0], trial[1])
+            solutions.append((value))
+        
+        optimizer.tell(solutions, trial_pop)
+        
+        parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
+        optimizer.tellAgain(parent_fit)
+    animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMAES_%s" % (lab), algo="CMAES")
+
+    exit()

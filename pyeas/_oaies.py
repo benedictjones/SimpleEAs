@@ -394,6 +394,7 @@ class OAIES:
             #exit()
         
         self._number_evals += len(trials)
+        self.history['num_evals'].append(self._number_evals)
 
         self._toggle = 0
         self._toggle_parent = 1
@@ -414,7 +415,6 @@ class OAIES:
 
         self.history['best_fits'].append(parent_fit)
         self.history['best_solutions'].append(self.parent)
-        self.history['num_evals'].append(self._number_evals)
 
         self._toggle_parent = 0
         return
