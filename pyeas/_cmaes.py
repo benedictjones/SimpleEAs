@@ -87,15 +87,16 @@ class CMAES:
     ):
         assert sigma > 0, "sigma must be non-zero positive value"
 
+        # # Initialise object to normalise and denormalise the population
+        self.PopScale = PopScale(np.array(bounds), groupings)
+        mean = self.PopScale._norm([mean])[0]  # normalise mean
+
         assert np.all(
             np.abs(mean) < _MEAN_MAX
         ), f"Abs of all elements of mean vector must be less than {_MEAN_MAX}"
 
         n_dim = len(mean)
         assert n_dim > 1, "The dimension of mean must be larger than 1"
-
-        # # Initialise object to normalise and denormalise the population
-        self.PopScale = PopScale(np.array(bounds), groupings)
 
         if population_size is None:
             population_size = 4 + math.floor(3 * math.log(n_dim))  # (eq. 48)
@@ -514,10 +515,13 @@ def _is_valid_bounds(bounds: Optional[np.ndarray], mean: np.ndarray) -> bool:
     if bounds is None:
         return True
     if (mean.size, 2) != bounds.shape:
+        print("\nBad bounds: invalid shape")
         return False
     if not np.all(bounds[:, 0] <= mean):
+        print("\nBad bounds: mean below lower bound \n", mean)
         return False
     if not np.all(mean <= bounds[:, 1]):
+        print("\nBad bounds: mean above upper bound \n", mean)
         return False
     return True
 

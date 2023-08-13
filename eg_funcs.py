@@ -1,13 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from tqdm import tqdm
 
 from pyeas._de import DE
 from pyeas._oaies import OAIES
 from pyeas._cmaes import CMAES
 from pyeas._plotter import animate
 
-from cmaes import CMA
 
 
 def f_mat(x1, x2):
@@ -97,13 +95,16 @@ funs, bds, labs = zip(*itrbl)
 
 num_gens = 40
 
-for deets in itrbl:
-
+pbar = tqdm(itrbl, unit="Funcs Completed")
+for deets in pbar:
+    
     fun, bound, lab = deets
-    print("\n>>", lab, bound)
+    # print("\n>>", lab, bound)
+    
 
     
     # # Perform DE 
+    pbar.set_description("Solving %s function using DE   " % lab)
     optimizer = DE(mut=0.6,
                 crossp=0.6,
                 bounds=np.array(bound),
@@ -124,6 +125,7 @@ for deets in itrbl:
     
 
     # # Perform OpenAi-ES 
+    pbar.set_description("Solving %s function using OAIES" % lab)
     optimizer = OAIES(
                 alpha=0.01,
                 sigma=0.002,
@@ -143,31 +145,10 @@ for deets in itrbl:
         optimizer.tell(solutions, trial_pop, t=generation)
         parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
         optimizer.tellAgain(parent_fit)
-
     # animate(optimizer, trial_pops, bound, fun, lab, save="examples/OAIES_%s" % (lab), algo='OAIES')
 
-
     # # Perform CMAES
-    # optimizer = CMA(mean=np.mean(bound, axis=1),
-    #                 sigma=0.002,
-    #                 bounds=np.array(bound),
-    #                 seed=2)
-
-    # trial_pops = []
-    # for generation in range(num_gens):
-    #     solutions = []
-    #     for _ in range(optimizer.population_size):
-    #         x = optimizer.ask()
-
-    #     exit()
-    #     value = fun(x[0], x[1])
-    #     solutions.append((x, value))
-    #     optimizer.tell(solutions,)
-    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMA_%s" % (lab), algo="CMA")
-
-
-
-    # # Perform CMAES
+    pbar.set_description("Solving %s function using CMAES" % lab)
     optimizer = CMAES(mean=np.mean(bound, axis=1),
                     sigma=0.002,
                     bounds=np.array(bound),
@@ -183,11 +164,10 @@ for deets in itrbl:
         for j, trial in enumerate(trial_pop):
             value = fun(trial[0], trial[1])
             solutions.append((value))
-        
         optimizer.tell(solutions, trial_pop)
         
         parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
         optimizer.tellAgain(parent_fit)
     animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMAES_%s" % (lab), algo="CMAES")
 
-    exit()
+    # exit()

@@ -7,7 +7,7 @@ import matplotlib.animation as animation
 
 def animate(optimizer, trial_pops, bounds, func, label, save=None, algo=''):
     
-    fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4), constrained_layout=True)
+    fig_ani, (ax, ax2) = plt.subplots(ncols=2, figsize=(9,4)) # , constrained_layout=True
 
     fig_ani.suptitle('%s on %s function' % (algo, label))
 
@@ -18,8 +18,8 @@ def animate(optimizer, trial_pops, bounds, func, label, save=None, algo=''):
 
     ax.imshow(Z, extent = np.array(bounds).flatten(), origin = 'lower', cmap = 'jet', alpha = 1)
     # ax.scatter(r1[0], r2[0], marker=".", color='r')
-    it_point, = ax.plot([], [], '*', color='w', alpha=1, linestyle="None") #
-    it_converg, = ax.plot([], [], '-*', markersize=5, color='w', alpha=0.3) #
+    it_point, = ax.plot([], [], '*', color='w', alpha=1, linestyle="None", markersize=9) #
+    it_converg, = ax.plot([], [], '-o', color='w', alpha=0.45, markersize=2.5) #
     trs, = ax.plot(trial_pops[0][:,0], trial_pops[0][:,1], marker=".", color='k', linestyle="None") 
     ax.set_xlabel("x1")
     ax.set_ylabel("x2")
@@ -38,20 +38,20 @@ def animate(optimizer, trial_pops, bounds, func, label, save=None, algo=''):
 
     def ani(i):
         # ax.clear()
-        print(i, ">", int(i/2))
+        # print(i, ">", int(i/2))
         
         # ax.set_title("i: %d, i/2: %d" % (i, int(i/2)))
 
         if (i % 2) == 0:  # even 
             
-            print(">> trial")
+            # print(">> trial")
             trials = trial_pops[int(i/2)]
             # trs, = ax.plot(trials[:,0], trials[:,1], marker=".", color='k') 
             trs.set_data(trials[:,0], trials[:,1]) 
 
         else:
             
-            print(">> parent")
+            # print(">> parent")
             trs.set_data([], []) 
             # if int(i/2) > 0:
             #     trs.remove()
