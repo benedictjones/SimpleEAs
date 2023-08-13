@@ -175,6 +175,12 @@ class OAIES:
         """Return the denormalised (and grouped) parent poulation"""
         return (self.history['best_fits'][-1], self.history['best_solutions'][-1])
 
+    @property
+    def evals(self) -> int:
+        """The number of evaluations (i.e., number of computations)"""
+        return self._number_evals
+    
+
     #
 
     # #########################################

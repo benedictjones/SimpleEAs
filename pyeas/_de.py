@@ -176,6 +176,11 @@ class DE:
         member = self.PopScale._denorm([self._pop_norm[self._best_idx]])[0]
         return (fit, member)
     
+    @property
+    def evals(self) -> int:
+        """The number of evaluations (i.e., number of computations)"""
+        return self._number_evals
+    
     #
 
     # #########################################

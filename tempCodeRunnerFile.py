@@ -1,2 +1,1 @@
-
-    for generation in range(num_gens):
+100

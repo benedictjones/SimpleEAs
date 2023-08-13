@@ -102,7 +102,6 @@ for deets in pbar:
     # print("\n>>", lab, bound)
     
 
-    
     # # Perform DE 
     pbar.set_description("Solving %s function using DE   " % lab)
     optimizer = DE(mut=0.6,

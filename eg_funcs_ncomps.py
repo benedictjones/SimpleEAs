@@ -1,9 +1,12 @@
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 from pyeas._de import DE
 from pyeas._oaies import OAIES
-from pyeas._pagetest import PageTest
+from pyeas._cmaes import CMAES
+from pyeas._plotter import animate
 
 
 
@@ -79,32 +82,30 @@ This then allows for a page trend test.
 """
 
 itrbl = [
-        [f_mat, [[-10,10],[-10,10]], 'matyas'],
+        # [f_mat, [[-10,10],[-10,10]], 'matyas'],
         [f_bohach, [[-100,100],[-100,100]], 'bohachevsky'],
-        [f_3hc, [[-5,5],[-5,5]], '3hc'],
+        # [f_3hc, [[-5,5],[-5,5]], '3hc'],
         [f_6hc, [[-3,3],[-2,2]], '6hc'],
         [f_kean, [[-10,10],[-10,10]], 'kean'],
-        [f_ackley, [[-5,5],[-5,5]], 'ackley'],
-        [f_rose, [[-5,10],[-5,10]], 'rosen'],
+        # [f_ackley, [[-5,5],[-5,5]], 'ackley'],
+        # [f_rose, [[-5,10],[-5,10]], 'rosen'],
         [f_beale, [[-4.5,4.5],[-4.5,4.5]],'beale']
         ]
 
 funs, bds, labs = zip(*itrbl)
 
-PT = PageTest(num_cuts=5,
-              problem_labels=labs,
-              invert=0)
 
-
-num_gens = 40
-num_loops = 100
+max_ncomps = 500
+num_loops = 200
 
 pbar = tqdm(itrbl, unit="Funcs Completed")
 for deets in pbar:
-
+    
     fun, bound, lab = deets
-
-    # # Perform DE (Algorithm A)
+    # print("\n>>", lab, bound)
+    
+    
+    # # Perform DE 
     pbar.set_description("Solving %s function using DE   " % lab)
     de_rep_fits = []
     for rep in range(num_loops):
@@ -113,51 +114,94 @@ for deets in pbar:
                     bounds=np.array(bound),
                     population_size=20,
                     mut_scheme = 'best1',  # 'ttb1', rand1
-                    seed=rep)
+                    seed=2)
 
-        for generation in range(num_gens):
+        trial_pops = []
+        gen = 0
+        while optimizer.evals < max_ncomps: # Break after set number of computations (i.e., evaluations)
             solutions = []
-            trial_pop = optimizer.ask(loop=generation)
+            trial_pop = optimizer.ask(loop=gen)
+            trial_pops.append(trial_pop)
             for j, trial in enumerate(trial_pop):
                 value = fun(trial[0], trial[1])
                 solutions.append((value))
             optimizer.tell(solutions, trial_pop)
-
+            gen += 1
         de_rep_fits.append(optimizer.history['best_fits'])
-    
+    de_rep_fits = np.mean(de_rep_fits, axis=0)
+    de_ncomps = optimizer.history['num_evals']
+    print("DE gens:", len(de_ncomps))
 
-    # # Perform OpenAi-ES (Algorithm B)
+    # # Perform OpenAi-ES 
     pbar.set_description("Solving %s function using OAIES" % lab)
     oaies_rep_fits = []
     for rep in range(num_loops):
         optimizer = OAIES(
                     alpha=0.01,
-                    sigma=0.001,
+                    sigma=0.002,
                     bounds=np.array(bound),
-                    population_size=20,
+                    population_size=10,
                     optimiser = 'adam',
-                    seed=num_loops+rep)
-
-        for generation in range(num_gens):
+                    seed=2)
+        
+        trial_pops = []
+        gen = 0
+        while optimizer.evals < max_ncomps: # Break after set number of computations (i.e., evaluations)
             solutions = []
-            trial_pop = optimizer.ask(loop=generation)
+            trial_pop = optimizer.ask(loop=gen)
+            trial_pops.append(trial_pop)
             for j, trial in enumerate(trial_pop):
                 value = fun(trial[0], trial[1])
                 solutions.append((value))
-            optimizer.tell(solutions, trial_pop, t=generation)
+            optimizer.tell(solutions, trial_pop, t=gen)
             parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
             optimizer.tellAgain(parent_fit)
-
+            gen += 1
         oaies_rep_fits.append(optimizer.history['best_fits'])
+    oaies_rep_fits = np.mean(oaies_rep_fits, axis=0)
+    oaies_ncomps = optimizer.history['num_evals']
+    print("OAIES gens:", len(oaies_ncomps))
 
-    # # Add Problem as they come along
-    PT.add_problem(x=np.arange(num_gens),
-                   yA=np.mean(de_rep_fits, axis=0), # Algorithm A
-                   yB=np.mean(oaies_rep_fits, axis=0) # Algorithm B
-                   )
+    # # Perform CMAES
+    pbar.set_description("Solving %s function using CMAES" % lab)
+    cmaes_rep_fits = []
+    for rep in range(num_loops):
+        optimizer = CMAES(start='random',
+                        sigma=0.2,
+                        bounds=np.array(bound),
+                        seed=2)
+
+        trial_pops = []
+        while optimizer.evals < max_ncomps: # Break after set number of computations (i.e., evaluations)
+            
+            solutions = []
+            
+            trial_pop = optimizer.ask()
+            trial_pops.append(trial_pop)
+            for j, trial in enumerate(trial_pop):
+                value = fun(trial[0], trial[1])
+                solutions.append((value))
+            optimizer.tell(solutions, trial_pop)
+            
+            parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
+            optimizer.tellAgain(parent_fit)
+        cmaes_rep_fits.append(optimizer.history['best_fits'])
+    cmaes_rep_fits = np.mean(cmaes_rep_fits, axis=0)
+    cmaes_ncomps = optimizer.history['num_evals']
+    print("CMAES gens:", len(cmaes_ncomps))
 
 
+    fig, ax = plt.subplots()
+    ax.plot(de_ncomps, de_rep_fits, '-o', label='DE')
+    ax.plot(oaies_ncomps, oaies_rep_fits, '-x', label='OAIES')
+    ax.plot(cmaes_ncomps, cmaes_rep_fits, '-*', label='CMAES')
 
-PT.test()
-PT.plot_cuts()
+    ax.set_title("EAs colving %s problem (avergaed over %d repetitions)" % (lab, num_loops)) 
+    ax.set_xlabel("Number of computations (i.e., evaluations)")
+    ax.set_ylabel("Mean fitness")
+    ax.legend()
 
+
+    # plt.show()
+
+    plt.savefig("examples/EAs_comparison_%s.png" % (lab))

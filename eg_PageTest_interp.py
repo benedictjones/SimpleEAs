@@ -96,7 +96,7 @@ PT = PageTest(num_cuts=5,
               invert=0)
 
 
-num_gens = 40
+max_ncomps = 500
 num_loops = 100
 
 pbar = tqdm(itrbl, unit="Funcs Completed")
@@ -114,17 +114,17 @@ for deets in pbar:
                     population_size=20,
                     mut_scheme = 'best1',  # 'ttb1', rand1
                     seed=rep)
-
-        for generation in range(num_gens):
+        gen = 0
+        while optimizer.evals < max_ncomps:
             solutions = []
-            trial_pop = optimizer.ask(loop=generation)
+            trial_pop = optimizer.ask(loop=gen)
             for j, trial in enumerate(trial_pop):
                 value = fun(trial[0], trial[1])
                 solutions.append((value))
             optimizer.tell(solutions, trial_pop)
-
+            gen += 1
         de_rep_fits.append(optimizer.history['best_fits'])
-    
+    de_ncomps = optimizer.history['num_evals']
 
     # # Perform OpenAi-ES (Algorithm B)
     pbar.set_description("Solving %s function using OAIES" % lab)
@@ -137,24 +137,27 @@ for deets in pbar:
                     population_size=20,
                     optimiser = 'adam',
                     seed=num_loops+rep)
-
-        for generation in range(num_gens):
+        
+        gen = 0
+        while optimizer.evals < max_ncomps:
             solutions = []
-            trial_pop = optimizer.ask(loop=generation)
+            trial_pop = optimizer.ask(loop=gen)
             for j, trial in enumerate(trial_pop):
                 value = fun(trial[0], trial[1])
                 solutions.append((value))
-            optimizer.tell(solutions, trial_pop, t=generation)
+            optimizer.tell(solutions, trial_pop, t=gen)
             parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
             optimizer.tellAgain(parent_fit)
-
+            gen += 1
         oaies_rep_fits.append(optimizer.history['best_fits'])
+    oaies_ncomps = optimizer.history['num_evals']
 
     # # Add Problem as they come along
-    PT.add_problem(x=np.arange(num_gens),
-                   yA=np.mean(de_rep_fits, axis=0), # Algorithm A
-                   yB=np.mean(oaies_rep_fits, axis=0) # Algorithm B
-                   )
+    PT.add_problem_interp(xA=de_ncomps,
+                          yA=np.mean(de_rep_fits, axis=0), # Algorithm A
+                          xB=oaies_ncomps,
+                          yB=np.mean(oaies_rep_fits, axis=0) # Algorithm B
+                          )
 
 
 
