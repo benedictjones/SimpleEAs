@@ -4,9 +4,10 @@ import math
 import numpy as np
 
 from typing import Any
-from typing import cast
+from typing import cast, Union
 from typing import Optional
 
+from pyeas._population_scaling import PopScale
 
 _EPS = 1e-8
 _MEAN_MAX = 1e32
@@ -50,6 +51,14 @@ class CMAES:
         bounds:
             Lower and upper domain boundaries for each parameter (optional).
 
+        groupings:
+            An array which informs the object of the shape of a population member (optional).
+                None        --> each member is a 1d array
+                                e.g., possible member: [1.5, 0.5, 0.6, -0.9, 1.1]
+                Otherwise   --> each member contains several diffenet shaped arrays 
+                                e.g., groupings=[1,3,2] 
+                                      possible member: [ [1.5], [0.5, 0.6, -0.9], [1.1]]
+
         n_max_resampling:
             A maximum number of resampling parameters (default: 100).
             If all sampled parameters are infeasible, the last sampled one
@@ -70,6 +79,7 @@ class CMAES:
         mean: np.ndarray,
         sigma: float,
         bounds: Optional[np.ndarray] = None,
+        groupings: Optional[Union[np.ndarray, list]] = None,
         n_max_resampling: int = 20,
         seed: Optional[int] = None,
         population_size: Optional[int] = None,
@@ -83,6 +93,9 @@ class CMAES:
 
         n_dim = len(mean)
         assert n_dim > 1, "The dimension of mean must be larger than 1"
+
+        # # Initialise object to normalise and denormalise the population
+        self.PopScale = PopScale(np.array(bounds), groupings)
 
         if population_size is None:
             population_size = 4 + math.floor(3 * math.log(n_dim))  # (eq. 48)
@@ -178,6 +191,7 @@ class CMAES:
         self._B: Optional[np.ndarray] = None
 
         # bounds contains low and high of each parameter.
+        bounds = np.array([[0,1] for b in range(n_dim)])  # set bounds to the normalised range 
         assert bounds is None or _is_valid_bounds(bounds, mean), "invalid bounds"
         self._bounds = bounds
         self._n_max_resampling = n_max_resampling
@@ -246,16 +260,22 @@ class CMAES:
     @property
     def parent(self) -> np.ndarray:
         """Return the denormalised (and grouped) parent poulation"""
-        return self._mean
+        return self.PopScale._denorm([self._mean])[0]
 
+    @property
+    def best_trial(self) -> np.ndarray:
+        """Fetch the current psudo-population best member and it's fitness"""
+        fit = np.min(self._trial_fits)
+        member = self._trials[np.argmin(self._trial_fits)]
+        return (fit, member)
+
+    @property
+    def best(self) -> np.ndarray:
+        """Return the denormalised (and grouped) parent poulation"""
+        return (self.history['best_fits'][-1], self.history['best_solutions'][-1])
 
     def reseed_rng(self, seed: int) -> None:
         self._rng.seed(seed)
-
-    def set_bounds(self, bounds: Optional[np.ndarray]) -> None:
-        """Update boundary constraints"""
-        assert bounds is None or _is_valid_bounds(bounds, self._mean), "invalid bounds"
-        self._bounds = bounds
 
     #
 
@@ -274,7 +294,7 @@ class CMAES:
             trial_pop.append(x)
 
         self._toggle = 1
-        return np.array(trial_pop)
+        return self.PopScale._denorm(trial_pop)
 
     def ask_member(self) -> np.ndarray:
         """Sample a parameter"""
@@ -334,8 +354,13 @@ class CMAES:
         assert len(fitnessess) == self._popsize, "Must tell popsize-length solutions."
         assert self._toggle == 1, "Must first ask (i.e., fetch) & evaluate new trials."
         assert self._toggle_parent == 0, "Must first evaluate and set the best/parent member fitness"
-        solutions = list(zip(trials, fitnessess))  # format how this object wants them
+        
+        self._trials = trials  # allows the best tiral member property to access the lastest (real valued) members
+        trials_norm = self.PopScale._norm(trials)
+        self._trial_fits = fitnessess
 
+        solutions = list(zip(trials_norm, fitnessess))  # return to the solution format desired
+        
         for s in solutions:
             assert np.all(
                 np.abs(s[0]) < _MEAN_MAX
@@ -424,7 +449,7 @@ class CMAES:
     def tellAgain(self, parent_fit: float):
         """Set the parent member's fitness"""
 
-        assert self._parent_fit is not None, "Can't set the best fitness until you have evaluated generation zero"
+        # assert self._parent_fit is not None, "Can't set the best fitness until you have evaluated generation zero"
         assert self._toggle == 0, "Can only set the best result once you have updated the pop via a tell."
         assert self._toggle_parent == 1, "Must first perform a generational update, then inform about the new parent fit (e.g., optimizer.best = parent_fit)"
         # assert parent_fit >= 0, "The parent fitness score must be greater than zero."

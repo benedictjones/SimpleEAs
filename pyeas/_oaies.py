@@ -6,6 +6,8 @@ from typing import cast, Union
 from typing import Optional  # telling the type checker that either an object of the specific type is required, or None is required
 import time
 
+from pyeas._population_scaling import PopScale
+
 
 class OAIES:
     """OpenAI-ES stochastic optimizer class with ask-and-tell interface.
@@ -25,13 +27,16 @@ class OAIES:
             Lower and upper domain boundaries for each parameter (optional).
 
         optimiser:
-            The optimisation method used: 'vaniller', 'momentum', 'adam'
+            The optimisation method used: 'vanilla', 'momentum', 'adam'
 
         seed:
             A seed number (optional).
 
         population_size:
             A population size (optional).
+
+        pop_dim_multiple:
+            Boolean toggle to set the population as a multiple of the number of dimesnions (optional)
 
         cov:
             A covariance matrix (optional).
@@ -65,8 +70,9 @@ class OAIES:
         else:
             self._n_dim = np.sum(groupings)
         assert self._n_dim > 1, "The dimension of mean must be larger than 1"
-        self._groupings = groupings
-        self._bounds = np.array(bounds)
+
+        # # Initialise object to normalise and denormalise the population
+        self.PopScale = PopScale(np.array(bounds), groupings)
 
         # # Check population size
         assert pop_dim_multiple == 0 or pop_dim_multiple == 1, "population as multiple of number of dimensions flag must be 0 or 1"
@@ -131,6 +137,16 @@ class OAIES:
         return self._popsize
 
     @property
+    def bounds(self) -> int:
+        """The bounds"""
+        return self.PopScale._bounds
+
+    @property  
+    def groupings(self) -> int:
+        """The Grouping"""
+        return self.PopScale._groupings
+
+    @property
     def generation(self) -> int:
         """Generation number which is monotonically incremented
         when multi-variate gaussian distribution is updated."""
@@ -139,19 +155,19 @@ class OAIES:
     @property
     def parent(self) -> np.ndarray:
         """Return the denormalised (and grouped) parent poulation"""
-        return self._denorm([self._parent_norm])[0]
+        return self.PopScale._denorm([self._parent_norm])[0]
 
     @parent.setter
     def parent(self, new_parent_pop: np.ndarray):
         """Set the parent poulation"""
-        self._parent_norm = self._norm([new_parent_pop])[0]
+        self._parent_norm = self.PopScale._norm([new_parent_pop])[0]
         return
 
     @property
     def best_trial(self) -> np.ndarray:
         """Fetch the current psudo-population best member and it's fitness"""
         fit = np.min(self._trial_fits)
-        member = self._denorm([self._trials[np.argmin(self._trial_fits)]])[0]
+        member = self.PopScale._denorm([self._trials[np.argmin(self._trial_fits)]])[0]
         return (fit, member)
     
     @property
@@ -174,12 +190,12 @@ class OAIES:
         if self._parent_norm is None:
             self._parent_norm = self._sample_initi_pop() # generate initial parent population to evaluate
             self._toggle = 1
-            return self._denorm([self._parent_norm])[0]
+            return self.PopScale._denorm([self._parent_norm])[0]
         
         else:
             trial_pop = self._sample_trial_pop(loop)  # generate trial population to evaluate
             self._toggle = 1
-            return self._denorm(trial_pop)
+            return self.PopScale._denorm(trial_pop)
     
 
     def _sample_initi_pop(self) -> np.ndarray:
@@ -334,12 +350,12 @@ class OAIES:
         # # Retrieve fitness information and make gradient decent update
         if self._parent_fit is None:
             # # Use a uniformly generated population to select a starting location
-            self._parent_norm = self._norm([trials[np.argmin(fitnessess)]])[0]
+            self._parent_norm = self.PopScale._norm([trials[np.argmin(fitnessess)]])[0]
             self._parent_fit = np.min(fitnessess) 
         else:
             # # Colapse the pseudo-population to update the parent/target
             assert trials is not None, "To perfom GD, please tell me the fitnesses and trials/pseudo-population used"
-            trials_norm = self._norm(trials)
+            trials_norm = self.PopScale._norm(trials)
             #print("self._parent_norm", self._parent_norm)
             theta = np.copy(self._parent_norm)  # parent member to perfrom GD on
 
@@ -418,70 +434,8 @@ class OAIES:
 
         self._toggle_parent = 0
         return
-    #
-
-    # #########################################
-    # # Functiosn which format the population
-
-    def _denorm(self, norm_pop_in: np.ndarray) -> np.ndarray:
-        """
-        Produce the de-normalised population using the bounds.
-        Also groups the population into its gene groups (if 'groupings' is being used).
-        """
-
-        if self._groupings is None:
-            members_denorm = self._bounds[:,0] + norm_pop_in*abs(self._bounds[:,1]-self._bounds[:,0])
-            pop_denorm = np.around(members_denorm.astype(np.float), decimals=5)
-        else:
-            pop_denorm = []
-            for i, member in enumerate(norm_pop_in):
-                pop_denorm.append(self._group_denorm(member))
         
-        return np.asarray(pop_denorm, dtype=object)
-
-    def _group_denorm(self, arr: np.ndarray) -> np.ndarray:
-
-        grouped_arr = []
-        st = 0
-        for j, size in enumerate(self._groupings):
-            lower_b, upper_b = self._bounds[j]  # get group bounds
-            group = arr[st:(st+size)]
-            group_denorm = lower_b + group*(abs(upper_b-lower_b))
-            grouped_arr.append(np.around(group_denorm.astype(np.float), decimals=5))
-            st += size
-
-        return np.asarray(grouped_arr, dtype=object) 
     #
-
-    def _norm(self, pop_in: np.ndarray) -> np.ndarray:
-        """
-        Produce the normalised population using the bounds.
-        Also un-groups the population (if 'groupings' is being used).
-        """
-
-        if self._groupings is None:
-            pop_norm = (pop_in - self._bounds[:,0])/(self._bounds[:,1] - self._bounds[:,0])
-        else:
-            pop_norm = np.array(pop_in)
-            for j, grouping in enumerate(self._groupings):
-                lower_b, upper_b = self._bounds[j]  # get group bounds
-                pop_norm[:,j] = (pop_norm[:,j] - lower_b)/(upper_b - lower_b)
-            pop_norm = np.array([np.concatenate(x) for x in pop_norm])
-
-        pop_norm = np.around(pop_norm.astype(np.float), decimals=5)
-
-        return np.asarray(pop_norm, dtype=object)
-
-    def _ungroup_norm(self, grouped_arr: np.ndarray) -> np.ndarray:
-
-        norm_member = []
-        for j, group in enumerate(grouped_arr):
-            lower_b, upper_b = self._bounds[j]  # get group bounds
-            group_norm = (group - lower_b)/(upper_b - lower_b)
-            norm_member.append(np.around(group_norm.astype(np.float), decimals=5))
-
-        return np.concatenate(norm_member, axis=0)
-
 
     # #########################################
     # # Misc functions
