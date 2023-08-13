@@ -163,7 +163,7 @@ An Example of CMAES solving some simple problems (with random starting locations
 We can notice that different hyperparameter values might result in wildly different convergence speeds per amount of evaluations/computations executed.
 In cases where completing an evaluation is computationally expensive, ideally the algorithm should provide meaningful generational updates while only requiring a minimal number of evaluations in that generation [5].
 
-Consider how we might set a maximum number of computations/evaluations limit:
+Consider how we might set a maximum number of computations/evaluations limit (e.g., for the DE algorithm):
 ```
 optimizer = DE(mut=0.6,
                crossp=0.6,
@@ -205,6 +205,8 @@ we are now in the realm of hyperparamater tuning...
 
 ### Page Trend Test
 
+Finnaly, to actually do a statisitcal test and compare EA convergence, we can use the page trend test [6], implemented here.
+We also address the posability that two algorithms might have different x-axis values (as in the previous section). An example is given in `eg_PageTest_interp.py`.
 
 ## Additional Functionality
 
@@ -238,3 +240,7 @@ This is very important to enable realistic comparisons in case mini-batching is 
 [4] Hansen, N. (2016). The CMA Evolution Strategy: A Tutorial. Available: https://arxiv.org/abs/1604.00772
 
 [5] Benedict. A. H. Jones, N. Al Moubayed, D. A. Zeze, and C. Groves, ‘Enhanced methods for Evolution in-Materio Processors’, in 2021 International Conference on Rebooting Computing (ICRC), Nov. 2021, pp. 109–118. http://doi.org/10.1109/ICRC53822.2021.00026.
+
+[6] Derrac, J., Garc ́ıa, S., Hui, S., Suganthan, P. N., and Herrera, F. (2014). Analyzing con-
+vergence performance of evolutionary algorithms: A statistical approach. Information
+Sciences, 289:41–58. http://dx.doi.org/10.1016/j.ins.2014.06.009 
