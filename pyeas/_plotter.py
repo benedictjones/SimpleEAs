@@ -72,3 +72,5 @@ def animate(optimizer, trial_pops, bounds, func, label, save=None, algo=''):
     if save is not None:
         fig_path = "%s.gif" % (save)
         the_animation.save(fig_path, writer='pillow', fps=FPS, dpi=50)
+    
+    plt.close(fig_ani)

@@ -121,8 +121,7 @@ for deets in pbar:
             value = fun(trial[0], trial[1])
             solutions.append((value))
         optimizer.tell(solutions, trial_pop)
-    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/DE_%s" % (lab), algo="DE")
-    
+    animate(optimizer, trial_pops, bound, fun, lab, save="examples/DE_%s" % (lab), algo="DE")
 
     # # Perform OpenAi-ES 
     pbar.set_description("Solving %s function using OAIES" % lab)
@@ -145,13 +144,14 @@ for deets in pbar:
         optimizer.tell(solutions, trial_pop, t=generation)
         parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
         optimizer.tellAgain(parent_fit)
-    # animate(optimizer, trial_pops, bound, fun, lab, save="examples/OAIES_%s" % (lab), algo='OAIES')
+    animate(optimizer, trial_pops, bound, fun, lab, save="examples/OAIES_%s" % (lab), algo='OAIES')
 
     # # Perform CMAES
     pbar.set_description("Solving %s function using CMAES" % lab)
-    optimizer = CMAES(mean=np.mean(bound, axis=1),
-                    sigma=0.002,
+    optimizer = CMAES(start='random',
+                    sigma=0.2,
                     bounds=np.array(bound),
+                    population_size=10,
                     seed=2)
 
     trial_pops = []
@@ -169,5 +169,6 @@ for deets in pbar:
         parent_fit = fun(optimizer.parent[0], optimizer.parent[1])
         optimizer.tellAgain(parent_fit)
     animate(optimizer, trial_pops, bound, fun, lab, save="examples/CMAES_%s" % (lab), algo="CMAES")
+
 
     # exit()

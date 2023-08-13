@@ -42,8 +42,11 @@ class CMAES:
 
     Args:
 
-        mean:
-            Initial mean vector of multi-variate gaussian distributions.
+        start:
+            Starting location (i.e., Initial mean vector of multi-variate gaussian distributions), select from:
+                - 'mean', the center of the selected bounds,
+                - 'random': initial random population used to select a good starting location,
+                - passed in array 
 
         sigma:
             Initial standard deviation of covariance matrix.
@@ -76,8 +79,8 @@ class CMAES:
 
     def __init__(
         self,
-        mean: np.ndarray,
         sigma: float,
+        start: Union[np.ndarray, str] = 'mean',
         bounds: Optional[np.ndarray] = None,
         groupings: Optional[Union[np.ndarray, list]] = None,
         n_max_resampling: int = 20,
@@ -87,16 +90,33 @@ class CMAES:
     ):
         assert sigma > 0, "sigma must be non-zero positive value"
 
+        # # Check number of dimensions
+        if groupings is None:
+            n_dim = len(bounds)
+        else:
+            n_dim = np.sum(groupings)
+        assert n_dim > 1, "The dimension of mean must be larger than 1"
+
         # # Initialise object to normalise and denormalise the population
         self.PopScale = PopScale(np.array(bounds), groupings)
-        mean = self.PopScale._norm([mean])[0]  # normalise mean
+        normalised_bounds = np.array([[0,1] for b in range(n_dim)])  # set normalised bounds 
 
-        assert np.all(
-            np.abs(mean) < _MEAN_MAX
-        ), f"Abs of all elements of mean vector must be less than {_MEAN_MAX}"
+        # Checks on starting location (a.k.a starting mean)
+        if isinstance(start, str):            
+            if start == 'mean':
+                self._mean = np.mean(normalised_bounds, axis=1)
+            elif start == 'random':
+                self._mean = None
+            else:
+                raise ValueError("Starting location can be: 'mean', 'random', or an array.")
+        else:
+            mean = self.PopScale._norm([start])[0]  # normalise mean
+            assert np.all(
+                np.abs(mean) < _MEAN_MAX
+            ), f"Abs of all elements of mean vector must be less than {_MEAN_MAX}"
 
-        n_dim = len(mean)
-        assert n_dim > 1, "The dimension of mean must be larger than 1"
+            self._mean = mean.copy()
+            assert normalised_bounds is None or _is_valid_bounds(normalised_bounds, mean), "invalid bounds"
 
         if population_size is None:
             population_size = 4 + math.floor(3 * math.log(n_dim))  # (eq. 48)
@@ -179,7 +199,7 @@ class CMAES:
         self._p_sigma = np.zeros(n_dim)
         self._pc = np.zeros(n_dim)
 
-        self._mean = mean.copy()
+        
 
         if cov is None:
             self._C = np.eye(n_dim)
@@ -192,13 +212,14 @@ class CMAES:
         self._B: Optional[np.ndarray] = None
 
         # bounds contains low and high of each parameter.
-        bounds = np.array([[0,1] for b in range(n_dim)])  # set bounds to the normalised range 
-        assert bounds is None or _is_valid_bounds(bounds, mean), "invalid bounds"
-        self._bounds = bounds
+        self._bounds = normalised_bounds
         self._n_max_resampling = n_max_resampling
 
         self._g = 0
-        self._rng = np.random.RandomState(seed)
+        # self._rng = np.random.RandomState(seed)
+        self._rng = np.random.default_rng(seed)
+        self._trial_seed = self._rng.integers(10000, size=1)[0]
+
 
         # Termination criteria
         self._tolx = 1e-12 * sigma
@@ -214,6 +235,7 @@ class CMAES:
         self._parent = None
         self._parent_fit = None
         self._number_evals = 0  # number of training evaluations
+        self._seed = seed
 
         self.history = {}
         self.history['best_fits'] = []
@@ -240,7 +262,8 @@ class CMAES:
         del state["_c_1d"]
         self.__dict__.update(state)
         # Set _rng for unpickled object.
-        setattr(self, "_rng", np.random.RandomState())
+        # setattr(self, "_rng", np.random.RandomState())  # legacy
+        setattr(self, "_rng", np.random.default_rng(self._seed)) 
 
     @property
     def dim(self) -> int:
@@ -275,9 +298,6 @@ class CMAES:
         """Return the denormalised (and grouped) parent poulation"""
         return (self.history['best_fits'][-1], self.history['best_solutions'][-1])
 
-    def reseed_rng(self, seed: int) -> None:
-        self._rng.seed(seed)
-
     #
 
     # #########################################
@@ -289,13 +309,20 @@ class CMAES:
         assert self._toggle == 0, "Must first evaluate current trials and tell me their fitnesses."
         assert self._toggle_parent == 0, "Must first evaluate and set the best/parent member fitness"
 
-        trial_pop = []
-        for i in range(self._popsize):
-            x = self.ask_member()
-            trial_pop.append(x)
+          # # Generate initital random population
+        if self._mean is None:
+            trial_pop = self._sample_random_initi_pop() # generate initial parent population to evaluate
+        
+        # # Sample Trial Population from Multivariate Gaussian Distribution (MGD)
+        else:
+            trial_pop = []
+            for i in range(self._popsize):
+                x = self.ask_member()
+                trial_pop.append(x)
 
         self._toggle = 1
         return self.PopScale._denorm(trial_pop)
+
 
     def ask_member(self) -> np.ndarray:
         """Sample a parameter"""
@@ -307,6 +334,13 @@ class CMAES:
         x = self._repair_infeasible_params(x)
         return x
 
+    def _sample_random_initi_pop(self) -> np.ndarray:
+        """Sample a random initital normalised population"""
+        norm_pop = []
+        for i in range(self._popsize):
+            norm_pop.append(np.around(self._rng.random(self._n_dim), decimals=5))
+        return np.asarray(norm_pop)
+    
     def _eigen_decomposition(self) -> tuple[np.ndarray, np.ndarray]:
         if self._B is not None and self._D is not None:
             return self._B, self._D
@@ -321,7 +355,8 @@ class CMAES:
 
     def _sample_solution(self) -> np.ndarray:
         B, D = self._eigen_decomposition()
-        z = self._rng.randn(self._n_dim)  # ~ N(0, I)
+        # z = self._rng.randn(self._n_dim)  # ~ N(0, I)  # legacy np.random.RandomState(seed)
+        z = self._rng.standard_normal(self._n_dim)  # ~ N(0, I)  # newer np.random.default_rng(seed)
         y = cast(np.ndarray, B.dot(np.diag(D))).dot(z)  # ~ N(0, C)
         x = self._mean + self._sigma * y  # ~ N(m, σ^2 C)
         return x
@@ -360,85 +395,93 @@ class CMAES:
         trials_norm = self.PopScale._norm(trials)
         self._trial_fits = fitnessess
 
-        solutions = list(zip(trials_norm, fitnessess))  # return to the solution format desired
-        
-        for s in solutions:
-            assert np.all(
-                np.abs(s[0]) < _MEAN_MAX
-            ), f"Abs of all param values must be less than {_MEAN_MAX} to avoid overflow errors"
+        # # Set starting mean from initital random population
+        if self._mean is None:
+            mean = self.PopScale._norm([trials[np.argmin(fitnessess)]])[0]  # initial (normalised) mean value
+            assert _is_valid_bounds(self._bounds, mean), "invalid bounds"
+            self._mean = mean
 
-        self._g += 1
-        solutions.sort(key=lambda s: s[1])
+        # # Update Multivariate Gaussian Distribution (MGD)
+        else:
+            solutions = list(zip(trials_norm, fitnessess))  # return to the solution format desired
+            
+            for s in solutions:
+                assert np.all(
+                    np.abs(s[0]) < _MEAN_MAX
+                ), f"Abs of all param values must be less than {_MEAN_MAX} to avoid overflow errors"
 
-        # Stores 'best' and 'worst' values of the
-        # last 'self._funhist_term' generations.
-        funhist_idx = 2 * (self.generation % self._funhist_term)
-        self._funhist_values[funhist_idx] = solutions[0][1]
-        self._funhist_values[funhist_idx + 1] = solutions[-1][1]
+            self._g += 1
+            solutions.sort(key=lambda s: s[1])
 
-        # Sample new population of search_points, for k=1, ..., popsize
-        B, D = self._eigen_decomposition()
-        self._B, self._D = None, None
+            # Stores 'best' and 'worst' values of the
+            # last 'self._funhist_term' generations.
+            funhist_idx = 2 * (self.generation % self._funhist_term)
+            self._funhist_values[funhist_idx] = solutions[0][1]
+            self._funhist_values[funhist_idx + 1] = solutions[-1][1]
 
-        x_k = np.array([s[0] for s in solutions])  # ~ N(m, σ^2 C)
-        y_k = (x_k - self._mean) / self._sigma  # ~ N(0, C)
+            # Sample new population of search_points, for k=1, ..., popsize
+            B, D = self._eigen_decomposition()
+            self._B, self._D = None, None
 
-        # Selection and recombination
-        y_w = np.sum(y_k[: self._mu].T * self._weights[: self._mu], axis=1)  # eq.41
-        self._mean += self._cm * self._sigma * y_w
+            x_k = np.array([s[0] for s in solutions])  # ~ N(m, σ^2 C)
+            y_k = (x_k - self._mean) / self._sigma  # ~ N(0, C)
 
-        # Step-size control
-        C_2 = cast(
-            np.ndarray, cast(np.ndarray, B.dot(np.diag(1 / D))).dot(B.T)
-        )  # C^(-1/2) = B D^(-1) B^T
-        self._p_sigma = (1 - self._c_sigma) * self._p_sigma + math.sqrt(
-            self._c_sigma * (2 - self._c_sigma) * self._mu_eff
-        ) * C_2.dot(y_w)
+            # Selection and recombination
+            y_w = np.sum(y_k[: self._mu].T * self._weights[: self._mu], axis=1)  # eq.41
+            self._mean += self._cm * self._sigma * y_w
 
-        norm_p_sigma = np.linalg.norm(self._p_sigma)
-        self._sigma *= np.exp(
-            (self._c_sigma / self._d_sigma) * (norm_p_sigma / self._chi_n - 1)
-        )
-        self._sigma = min(self._sigma, _SIGMA_MAX)
+            # Step-size control
+            C_2 = cast(
+                np.ndarray, cast(np.ndarray, B.dot(np.diag(1 / D))).dot(B.T)
+            )  # C^(-1/2) = B D^(-1) B^T
+            self._p_sigma = (1 - self._c_sigma) * self._p_sigma + math.sqrt(
+                self._c_sigma * (2 - self._c_sigma) * self._mu_eff
+            ) * C_2.dot(y_w)
 
-        # Covariance matrix adaption
-        h_sigma_cond_left = norm_p_sigma / math.sqrt(
-            1 - (1 - self._c_sigma) ** (2 * (self._g + 1))
-        )
-        h_sigma_cond_right = (1.4 + 2 / (self._n_dim + 1)) * self._chi_n
-        h_sigma = 1.0 if h_sigma_cond_left < h_sigma_cond_right else 0.0  # (p.28)
-
-        # (eq.45)
-        self._pc = (1 - self._cc) * self._pc + h_sigma * math.sqrt(
-            self._cc * (2 - self._cc) * self._mu_eff
-        ) * y_w
-
-        # (eq.46)
-        w_io = self._weights * np.where(
-            self._weights >= 0,
-            1,
-            self._n_dim / (np.linalg.norm(C_2.dot(y_k.T), axis=0) ** 2 + _EPS),
-        )
-
-        delta_h_sigma = (1 - h_sigma) * self._cc * (2 - self._cc)  # (p.28)
-        assert delta_h_sigma <= 1
-
-        # (eq.47)
-        rank_one = np.outer(self._pc, self._pc)
-        rank_mu = np.sum(
-            np.array([w * np.outer(y, y) for w, y in zip(w_io, y_k)]), axis=0
-        )
-        self._C = (
-            (
-                1
-                + self._c1 * delta_h_sigma
-                - self._c1
-                - self._cmu * np.sum(self._weights)
+            norm_p_sigma = np.linalg.norm(self._p_sigma)
+            self._sigma *= np.exp(
+                (self._c_sigma / self._d_sigma) * (norm_p_sigma / self._chi_n - 1)
             )
-            * self._C
-            + self._c1 * rank_one
-            + self._cmu * rank_mu
-        )
+            self._sigma = min(self._sigma, _SIGMA_MAX)
+
+            # Covariance matrix adaption
+            h_sigma_cond_left = norm_p_sigma / math.sqrt(
+                1 - (1 - self._c_sigma) ** (2 * (self._g + 1))
+            )
+            h_sigma_cond_right = (1.4 + 2 / (self._n_dim + 1)) * self._chi_n
+            h_sigma = 1.0 if h_sigma_cond_left < h_sigma_cond_right else 0.0  # (p.28)
+
+            # (eq.45)
+            self._pc = (1 - self._cc) * self._pc + h_sigma * math.sqrt(
+                self._cc * (2 - self._cc) * self._mu_eff
+            ) * y_w
+
+            # (eq.46)
+            w_io = self._weights * np.where(
+                self._weights >= 0,
+                1,
+                self._n_dim / (np.linalg.norm(C_2.dot(y_k.T), axis=0) ** 2 + _EPS),
+            )
+
+            delta_h_sigma = (1 - h_sigma) * self._cc * (2 - self._cc)  # (p.28)
+            assert delta_h_sigma <= 1
+
+            # (eq.47)
+            rank_one = np.outer(self._pc, self._pc)
+            rank_mu = np.sum(
+                np.array([w * np.outer(y, y) for w, y in zip(w_io, y_k)]), axis=0
+            )
+            self._C = (
+                (
+                    1
+                    + self._c1 * delta_h_sigma
+                    - self._c1
+                    - self._cmu * np.sum(self._weights)
+                )
+                * self._C
+                + self._c1 * rank_one
+                + self._cmu * rank_mu
+            )
 
         self._number_evals += len(fitnessess)  # number of training evaluations
         self.history['num_evals'].append(self._number_evals)
@@ -510,12 +553,26 @@ class CMAES:
 
         return False
 
+    #
+
+    # #########################################
+    # # Misc functions
+
+    def reseed_rng(self, seed: int) -> None:
+        self._rng.seed(seed)
+        self._seed
+        return
+
+
+
+
+
 
 def _is_valid_bounds(bounds: Optional[np.ndarray], mean: np.ndarray) -> bool:
     if bounds is None:
         return True
     if (mean.size, 2) != bounds.shape:
-        print("\nBad bounds: invalid shape")
+        print("\nBad bounds: mean starting value and bounds array have different shapes")
         return False
     if not np.all(bounds[:, 0] <= mean):
         print("\nBad bounds: mean below lower bound \n", mean)
@@ -546,3 +603,4 @@ def _decompress_symmetric(sym1d: np.ndarray) -> np.ndarray:
     out[R, C] = sym1d
     out[C, R] = sym1d
     return out
+
