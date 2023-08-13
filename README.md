@@ -189,12 +189,12 @@ We can then use this to consider fairer comparisons between alorithms.
 Consider some results from `eg_funcs_ncomps.py` showing the mean parent fitness covergence:
 
 <p float="left">
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_bohachevsky.gif" width="49%" />
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_6hc.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_bohachevsky.png" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_6hc.png" width="49%" />
 </p>
 <p float="left">
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_beale.gif" width="49%" />
-  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_kean.gif" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_beale.png" width="49%" />
+  <img src="https://raw.githubusercontent.com/benedictjones/pyeas/main/examples/EAs_comparison_kean.png" width="49%" />
 </p>
 
 Notice how CMAES and OAIES can have fitnesses which go up and down, unlike the fitnesses of the DE parent(s) which can only ever decrease.
