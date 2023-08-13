@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf8") as f:
 if __name__ == "__main__":
     setup(
         name="pyeas",
-        version="0.2.0",
+        version="0.1.4",
         author="benedictjones",
         description="Implements Evolutionary Algorithms and tools",
         long_description=long_description,

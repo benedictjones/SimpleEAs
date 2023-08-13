@@ -222,12 +222,6 @@ Instead, we might want to group a member into sub arrays corresponding to a list
 - grouping: [1, 2, 2]
 
 
-### Number of Evaluations
-
-The number of evaluations performed (recorded when the object is told solutions) is tracked.
-This means that systems can be compared for there computational consumption, rather then just the number of generations/iterations performed.
-
-This is very important to enable realistic comparisons in case mini-batching is being used [5].
 
 ## References 
 
